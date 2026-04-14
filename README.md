@@ -45,24 +45,24 @@ Các AI IDE hiện nay đều mắc chung 2 căn bệnh chí mạng:
 ```mermaid
 graph TD
     subgraph IDE ["IDE / AI Agent (Anti)"]
-        A[Code & Thảo luận] -->|@adr| B(Tạo ADR - Quyết định Kiến trúc)
-        A -->|@dump| C(Viết session_brief 15 dòng + git diff)
+        A["Code & Thảo luận"] -->|@adr| B("Tạo ADR - Quyết định Kiến trúc")
+        A -->|@dump| C("Viết session_brief 15 dòng + git diff")
     end
 
     subgraph OS ["Terminal / Watchdog Script"]
-        C --> D{watchdog_scribe.py}
-        Plan[implementation_plan.md] -.->|Hard Audit| D
+        C --> D{"watchdog_scribe.py"}
+        Plan["implementation_plan.md"] -.->|Hard Audit| D
     end
 
     subgraph Cloud ["LLM API"]
-        D <-->|HTTP Call| E((Gemini 2.5 Flash))
+        D <-->|HTTP Call| E(("Gemini 2.5 Flash"))
     end
 
     subgraph Vault ["Agent Vault  ~/Documents/agent_vault/"]
-        B --> F[projects/adr/]
-        E -->|watchdog scribe| G[sessions/YYYY-MM/]
-        E -->|1 dòng index| H[00_INDEX_MATRIX.md]
-        E -->|watchdog digest| I[digests/]
+        B --> F["projects/adr/"]
+        E -->|watchdog scribe| G["sessions/YYYY-MM/"]
+        E -->|1 dòng index| H["00_INDEX_MATRIX.md"]
+        E -->|watchdog digest| I["digests/"]
     end
 ```
 
