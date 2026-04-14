@@ -74,15 +74,38 @@
 
 ---
 
-### Phase 5 — Kỷ luật Tư duy với Sequential Thinking (Planned)
-**Mục tiêu:** Chống lại sự vội vã và "ảo giác" của LLM trước khi gõ code bằng cơ chế Internal Monologue (Tư duy chậm - System 2).
+### Phase 5 — Kỷ luật Tư duy: Ăn Protocol, Không Ăn Server (Planned)
+**Mục tiêu:** Chống lại sự vội vã và "ảo giác" của LLM trước khi gõ code bằng cơ chế Internal Monologue (Tư duy chậm — System 2, Daniel Kahneman).
 
-**Scope dự kiến:**
-- Tích hợp server `sequentialthinking` của MCP làm "Hệ điều hành Tư duy" bắt buộc cho Anti.
-- Ép Anti phải làm chủ bài toán: Tự chia nhỏ yêu cầu, tạo rẽ nhánh (branching) để cân nhắc các Option, và tự phản biện/sửa sai (Self-Correction) *trước khi* thực thi lệnh sửa file.
-- Watchdog sẽ capture lại toàn bộ "Dấu vết tư duy" (thought nodes) này để đẩy thẳng vào Session Log, cấu thành những tài liệu ADR chi tiết phản ánh đúng bản chất kỹ thuật nhất.
+**Insight kiến trúc (từ phân tích source code `sequentialthinking`):**  
+Server MCP Sequential Thinking thực chất chỉ là ~200 dòng TypeScript làm `array.push()`. Không có AI, không có logic — giá trị thật nằm ở **PROTOCOL** (JSON Schema buộc agent khai báo trước khi làm). Vì vậy: **ăn protocol, không ăn server**.
 
-**Tham khảo:** [`modelcontextprotocol/sequentialthinking`](https://github.com/modelcontextprotocol/servers/blob/main/src/sequentialthinking/README.md)
+```
+Sequential Thinking MCP = Vỏ rỗng (server) + Hạt vàng (protocol)
+                               ↓                     ↓
+                          KHÔNG ĂN               ĂN CÁI NÀY
+```
+
+**Scope triển khai — 3 Tầng tiến hóa:**
+
+**Tầng 1: Prompt-Only (Zero code, triển khai ngay)**
+- Nhúng "Thinking Protocol" vào System Prompt / `.cursorrules`.
+- Buộc Agent phải viết section `## Thought Trace` trong `session_brief.md` TRƯỚC KHI code.
+- Gồm 4 bước bắt buộc: Decompose → Branch → Self-Correct → Commit.
+- `watchdog scribe` tự nhiên capture thought trace vì nó nằm trong session_brief.
+- Enforcement: `watchdog audit` sẽ catch nếu agent skip thinking.
+
+**Tầng 2: Watchdog Verify (~10 dòng Python)**
+- Thêm check vào `watchdog scribe`: nếu `session_brief.md` thiếu `## Thought Trace` → in cảnh báo vào log.
+- Biến Watchdog thành **gác cổng tư duy** — audit trail tự động ghi nhận thiếu kỷ luật.
+
+**Tầng 3: Native MCP Tool (Khi Shadow Scribe thành MCP)**
+- Thêm tool `think` như tool nội bộ của Shadow Scribe MCP Server.
+- Nhận JSON giống schema Sequential Thinking → append vào `thought_trace.jsonl` trong vault.
+- `watchdog scribe` đọc file này khi tạo session log.
+- ~30 dòng Python, tích hợp nguyên bản, không cần Node.js hay server riêng.
+
+**Tham khảo gốc:** [`modelcontextprotocol/sequentialthinking`](https://github.com/modelcontextprotocol/servers/blob/main/src/sequentialthinking/README.md) — *Protocol adopted, server discarded.*
 
 ---
 
