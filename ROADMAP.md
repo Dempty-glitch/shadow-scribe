@@ -86,16 +86,48 @@
 
 ---
 
-### Phase 6 — Tự trị Ký ức với Graph-RAG & Progressive Disclosure (Planned)
-**Mục tiêu:** Biến Vault tĩnh thành một "Bộ não Động" (Autonomous Brain), cho phép Anti tự động truy vết bối cảnh (Auto Cold-start) theo định hướng của User mà không cần nhồi Vector DB cồng kềnh.
+### Phase 6 — Autonomous Vault Query với Progressive Disclosure (Planned)
+**Mục tiêu:** Đạt được khả năng RAG 3-Layer giống claude-mem **nhưng giữ vững nguyên tắc Zero-Dependency**. Không cần SQLite, ChromaDB, Bun, hay bất kỳ Vector DB cồng kềnh nào. Shadow Scribe đã có sẵn "Relational Markdown Database" — chỉ cần thêm thao tác truy vấn vào nó.
 
-**Scope dự kiến:**
-- Áp dụng triết lý "Tiết lộ lũy tiến" (Progressive Disclosure) và "Cổng Đọc quyết định" (File-read Decision Gate) học theo thiết kế của `claude-mem`.
-- Thiết lập một MCP Tool siêu nhẹ cấp quyền cho Anti query thẳng vào `00_INDEX_MATRIX.md` giống như một giao điểm Root.
-- Workflow Tự trị: User ra lệnh vibe chung ("Làm tính năng Z giống hồi bữa"). Anti tự động gọi lệnh đọc Index -> Xác định project liên quan -> Men theo đường link Markdown để gọi Tool đọc `PROJECT_INDEX.md` -> Đi dọc timeline để lôi `ADR-004.md` ra làm context.
-- User ủy quyền mảng "Lục lọi tài liệu" hoàn toàn cho năng lực liên kết logic của Agent.
+**Insight kiến trúc cốt lõi (từ Deep-Dive claude-mem):**  
+Chúng ta đã vô tình xây sẵn bộ xương 3-Layer mà claude-mem mất 1,662 commits mới có:
 
-**Tham khảo:** [`thedotmack/claude-mem`](https://github.com/thedotmack/claude-mem)
+| Layer | claude-mem         | Shadow Scribe (đã có!)         |
+|-------|--------------------|-------------------------------|
+| 1 — Index   | SQLite FTS5        | `00_INDEX_MATRIX.md` |
+| 2 — Timeline | `timeline` API    | `PROJECT_INDEX.md`   |
+| 3 — Details  | `get_observations` | `sessions/*.md` + `adr/*.md` |
+
+**Scope triển khai:**
+
+**a) `watchdog query` — Layer 1 Tool (Core)**
+- Thêm subcommand `watchdog query <từ_khóa>` vào `watchdog_scribe.py`.
+- Thực chất là grep nhanh chuỗi keyword vào `00_INDEX_MATRIX.md`.
+- Trả về các dòng index khớp + đường link Markdown tới Layer 2/3.
+- Agent đọc output ngắn này (Layer 1) → tự quyết định có follow link không.
+- **Zero new dependency** — dùng Python stdlib `re` / `str.find()` thuần túy.
+
+```bash
+watchdog query "thanh toán stripe"
+# → [shadow-scribe] 2026-04-14: feat: Stripe PaymentIntent + webhook | ADR-004 | sessions/04-2026/14_04_26.md
+# → [z-zero]        2026-03-15: fix: idempotency key collision           | sessions/03-2026/15_03_26.md
+```
+
+**b) Auto Context Injection — System Prompt (`.cursorrules`)**
+- Giải quyết Cold-start bằng cách ép Agent phải gọi `watchdog query` trước khi bắt đầu task cũ.
+- Ví dụ rule trong `.cursorrules` hoặc `CLAUDE.md`:
+  ```
+  Khi user nhắc đến task/dự án cũ → LUÔN gọi `watchdog query <từ khóa>` trước.
+  Đọc Layer 1 output → Follow link nếu thấy relevant → Load context từ Layer 3.
+  KHÔNG làm gì cho đến khi có context.
+  ```
+- **Zero new dependency** — chỉ là Prompt Engineering.
+
+**c) Icon Classification trong Session Log (Optional Enhancement)**
+- Sửa `SYSTEM_PROMPT` trong `watchdog_scribe.py`: thêm hướng dẫn phân loại mỗi key finding bằng icon vocabulary từ claude-mem.
+- Kết quả: `00_INDEX_MATRIX.md` sẽ có thêm cột `Type` với ký hiệu 🔴🟤⚖️ — Agent scan nhanh hơn.
+
+**Tham khảo:** [`thedotmack/claude-mem`](https://github.com/thedotmack/claude-mem) — [Deep Dive Analysis](../../.gemini/antigravity/brain/3a8addd1-320f-4da8-bca7-57a941487327/claude_mem_analysis.md)
 
 ---
 
@@ -109,4 +141,5 @@
 | 3.2 | `watchdog digest` (project-filtered) | ✅ Done | 1.1.0 |
 | 4 | Telegram Integration | ⚪ Planned | — |
 | 5 | Sequential Thinking (Internal Monologue) | 🔮 Future | — |
-| 6 | Autonomous Graph-RAG Vault | 🔮 Future | — |
+| 6 | Autonomous Vault Query (Zero-Dep RAG) | 🔮 Future | — |
+
