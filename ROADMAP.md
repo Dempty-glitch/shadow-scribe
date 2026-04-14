@@ -74,26 +74,28 @@
 
 ---
 
-### Phase 5 — Git Pre-commit Hook *(Đường tiềm năng)*
-**Mục tiêu:** Tự động audit trước mỗi `git commit`.
+### Phase 5 — Kỷ luật Tư duy với Sequential Thinking (Planned)
+**Mục tiêu:** Chống lại sự vội vã và "ảo giác" của LLM trước khi gõ code bằng cơ chế Internal Monologue (Tư duy chậm - System 2).
 
-```bash
-# .git/hooks/pre-commit
-watchdog audit || exit 1   # Block commit nếu 🔴 GOAL DRIFT
-```
+**Scope dự kiến:**
+- Tích hợp server `sequentialthinking` của MCP làm "Hệ điều hành Tư duy" bắt buộc cho Anti.
+- Ép Anti phải làm chủ bài toán: Tự chia nhỏ yêu cầu, tạo rẽ nhánh (branching) để cân nhắc các Option, và tự phản biện/sửa sai (Self-Correction) *trước khi* thực thi lệnh sửa file.
+- Watchdog sẽ capture lại toàn bộ "Dấu vết tư duy" (thought nodes) này để đẩy thẳng vào Session Log, cấu thành những tài liệu ADR chi tiết phản ánh đúng bản chất kỹ thuật nhất.
 
-**Trade-off:** Gọi Gemini API mỗi commit → chậm + tốn tiền nếu commit nhiều lần.  
-**Khi nào thử:** Khi workflow đã ổn định và cần guardrail mạnh hơn.
+**Tham khảo:** [`modelcontextprotocol/sequentialthinking`](https://github.com/modelcontextprotocol/servers/blob/main/src/sequentialthinking/README.md)
 
 ---
 
-### Phase 6 — `watchdog --digest` Weekly/Monthly Auto-report *(Đường tiềm năng)*
-**Mục tiêu:** Chạy digest định kỳ bằng cron job.
+### Phase 6 — Tự trị Ký ức với Graph-RAG & Progressive Disclosure (Planned)
+**Mục tiêu:** Biến Vault tĩnh thành một "Bộ não Động" (Autonomous Brain), cho phép Anti tự động truy vết bối cảnh (Auto Cold-start) theo định hướng của User mà không cần nhồi Vector DB cồng kềnh.
 
-```bash
-# Cron: mỗi thứ Hai 9h sáng
-0 9 * * 1 watchdog digest --project shadow-scribe --last 7
-```
+**Scope dự kiến:**
+- Áp dụng triết lý "Tiết lộ lũy tiến" (Progressive Disclosure) và "Cổng Đọc quyết định" (File-read Decision Gate) học theo thiết kế của `claude-mem`.
+- Thiết lập một MCP Tool siêu nhẹ cấp quyền cho Anti query thẳng vào `00_INDEX_MATRIX.md` giống như một giao điểm Root.
+- Workflow Tự trị: User ra lệnh vibe chung ("Làm tính năng Z giống hồi bữa"). Anti tự động gọi lệnh đọc Index -> Xác định project liên quan -> Men theo đường link Markdown để gọi Tool đọc `PROJECT_INDEX.md` -> Đi dọc timeline để lôi `ADR-004.md` ra làm context.
+- User ủy quyền mảng "Lục lọi tài liệu" hoàn toàn cho năng lực liên kết logic của Agent.
+
+**Tham khảo:** [`thedotmack/claude-mem`](https://github.com/thedotmack/claude-mem)
 
 ---
 
@@ -106,5 +108,5 @@ watchdog audit || exit 1   # Block commit nếu 🔴 GOAL DRIFT
 | 3.1 | `watchdog audit` (Hard + Soft) | ✅ Done | 1.0.1 |
 | 3.2 | `watchdog digest` (project-filtered) | ✅ Done | 1.1.0 |
 | 4 | Telegram Integration | ⚪ Planned | — |
-| 5 | Git Pre-commit Hook | 🔮 Future | — |
-| 6 | Cron Auto-report | 🔮 Future | — |
+| 5 | Sequential Thinking (Internal Monologue) | 🔮 Future | — |
+| 6 | Autonomous Graph-RAG Vault | 🔮 Future | — |
