@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+
+# Secrets & Environment
+.env
+.env.*
+*.key
+secrets.json
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs & temp files
+*.log
+*.tmp
+
+# Screenshot placeholders (user adds real ones)
+# docs/ is tracked but keep empty screenshots out
