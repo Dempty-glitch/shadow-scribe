@@ -25,6 +25,9 @@ import re
 import subprocess
 import urllib.request
 import urllib.error
+import tempfile
+import fcntl
+import time
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
 
@@ -57,7 +60,7 @@ _load_env_file(ENV_FILE)
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-VERSION = "1.2.0"  # Phase 3.3: Blood Lessons, Directory Routing, Soft-Delete
+VERSION = "1.2.1"  # Phase 3.4: Security Hardening (Secrets Redact, XML Escape, Atomic Write, HTTP Retry)
 
 # ─── PROMPT ───────────────────────────────────────────────────────────────────
 
@@ -140,6 +143,132 @@ KHÔNG ĐƯỢC thêm bất kỳ text nào trước hoặc sau dòng này."""
 
 # ─── HELPERS ──────────────────────────────────────────────────────────────────
 
+_SECRET_PATTERNS = [
+    # Key-Value patterns: KEY=value, KEY: value, KEY = "value"
+    (r'(?i)(API[_-]?KEY|SECRET[_-]?KEY|PASSWORD|PASSWD|TOKEN|ACCESS[_-]?KEY|PRIVATE[_-]?KEY|AUTH)\s*[:=]\s*["\']?([^\s"\']{8,})["\']?',
+     r'\1=*****[REDACTED]*****'),
+    # Common prefixes: ghp_, sk-, AIza, AKIA, etc.
+    (r'\b(ghp_[A-Za-z0-9]{36})',        '*****[REDACTED_GH]*****'),
+    (r'\b(sk-[A-Za-z0-9]{32,})',         '*****[REDACTED_SK]*****'),
+    (r'\b(AIza[A-Za-z0-9_-]{35})',       '*****[REDACTED_GAPI]*****'),
+    (r'\b(AKIA[A-Z0-9]{16})',            '*****[REDACTED_AWS]*****'),
+    # PEM private keys
+    (r'-----BEGIN[A-Z ]*PRIVATE KEY-----[\s\S]*?-----END[A-Z ]*PRIVATE KEY-----',
+     '*****[REDACTED_PEM]*****'),
+]
+
+def _redact_secrets(text: str) -> str:
+    """Mask secrets/credentials trước khi gửi lên API."""
+    redacted = text
+    count = 0
+    for pattern, replacement in _SECRET_PATTERNS:
+        redacted, n = re.subn(pattern, replacement, redacted)
+        count += n
+    if count:
+        print(f"🔒 Đã redact {count} secret(s) trước khi gửi API")
+    return redacted
+
+_PROMPT_TAGS = ["SESSION_BRIEF", "GIT_DIFF", "PLAN", "SESSION_LOGS"]
+
+def _sanitize_tags(text: str) -> str:
+    """Escape XML-like tags trong content để chống prompt injection."""
+    sanitized = text
+    for tag in _PROMPT_TAGS:
+        sanitized = sanitized.replace(f"<{tag}>", f"＜{tag}＞")
+        sanitized = sanitized.replace(f"</{tag}>", f"＜/{tag}＞")
+    return sanitized
+
+def _atomic_write_index(index_path: Path, new_row: str):
+    """Ghi Index an toàn: file lock + atomic write."""
+    lock_path = index_path.parent / ".index.lock"
+    with open(lock_path, "w") as lock_fd:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+        try:
+            lines = index_path.read_text(encoding="utf-8").splitlines() if index_path.exists() else []
+            insert_idx = -1
+            for i, line in enumerate(lines):
+                if line.startswith("|------|---------"):
+                    insert_idx = i + 1
+                    break
+            if insert_idx != -1:
+                lines.insert(insert_idx, new_row)
+            else:
+                lines.append(new_row)
+            
+            fd = tempfile.NamedTemporaryFile(
+                mode="w", dir=str(index_path.parent),
+                suffix=".tmp", delete=False, encoding="utf-8"
+            )
+            fd.write("\n".join(lines) + "\n")
+            fd.close()
+            os.replace(fd.name, str(index_path))
+        finally:
+            fcntl.flock(lock_fd, fcntl.LOCK_UN)
+
+def _http_post_with_retry(url: str, payload: dict, max_retries: int = 3, timeout: int = 120) -> dict:
+    """POST JSON với timeout và retry (exponential backoff)."""
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode("utf-8")
+            if e.code in (429, 500, 502, 503) and attempt < max_retries:
+                wait = 2 ** attempt
+                print(f"⚠️  HTTP {e.code} — retry {attempt}/{max_retries} sau {wait}s...")
+                time.sleep(wait)
+                continue
+            print(f"❌ API Error: {e.code} {e.reason}")
+            print(error_body)
+            sys.exit(1)
+        except (urllib.error.URLError, TimeoutError) as e:
+            if attempt < max_retries:
+                wait = 2 ** attempt
+                print(f"⚠️  Network error — retry {attempt}/{max_retries} sau {wait}s...")
+                time.sleep(wait)
+                continue
+            print(f"❌ Lỗi kết nối sau {max_retries} lần thử: {e}")
+            sys.exit(1)
+
+_DIFF_NOISE_FILES = {
+    "package-lock.json", "yarn.lock", "pnpm-lock.yaml",
+    "Cargo.lock", "Gemfile.lock", "poetry.lock",
+    ".DS_Store", "Thumbs.db",
+}
+
+def _filter_diff(diff_text: str) -> str:
+    """Loại bỏ diff chunks từ các file noise (lockfiles, binary, etc.)."""
+    if not diff_text or diff_text == "(Không có dữ liệu)":
+        return diff_text
+    
+    filtered_chunks = []
+    current_chunk = []
+    skip = False
+    
+    for line in diff_text.splitlines():
+        if line.startswith("diff --git"):
+            if current_chunk and not skip:
+                filtered_chunks.extend(current_chunk)
+            parts = line.split(" b/", 1)
+            current_file = parts[1] if len(parts) > 1 else ""
+            basename = current_file.rsplit("/", 1)[-1] if current_file else ""
+            skip = basename in _DIFF_NOISE_FILES
+            current_chunk = [line]
+        else:
+            current_chunk.append(line)
+            
+    if current_chunk and not skip:
+        filtered_chunks.extend(current_chunk)
+        
+    result = "\n".join(filtered_chunks)
+    removed = len(diff_text) - len(result)
+    if removed > 100:
+        print(f"🧹 Đã lọc {removed:,} chars noise từ git diff")
+    return result
+
 def read_file(path: Path, label: str, required: bool = True) -> str:
     if not path.exists():
         if required:
@@ -184,11 +313,15 @@ def call_gemini(brief: str, diff: str, plan: str = "") -> str:
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
     
-    user_message = f"<SESSION_BRIEF>\n{brief}\n</SESSION_BRIEF>\n\n<GIT_DIFF>\n{diff}\n</GIT_DIFF>"
+    safe_brief = _sanitize_tags(_redact_secrets(brief))
+    safe_diff = _sanitize_tags(_redact_secrets(diff))
+    
+    user_message = f"<SESSION_BRIEF>\n{safe_brief}\n</SESSION_BRIEF>\n\n<GIT_DIFF>\n{safe_diff}\n</GIT_DIFF>"
     
     if plan:
         print("🔍 Đã kích hoạt [Hard Audit] - Đang nạp Implementation Plan vào bộ nhớ thẩm định.")
-        user_message += f"\n\n<PLAN>\n{plan}\n</PLAN>"
+        safe_plan = _sanitize_tags(_redact_secrets(plan))
+        user_message += f"\n\n<PLAN>\n{safe_plan}\n</PLAN>"
         user_message += "\n\n⚠️ BẮT BUỘC ĐỐI CHIẾU HARD AUDIT: Hãy so sánh <SESSION_BRIEF> và <GIT_DIFF> với <PLAN> ban đầu. Nếu Agent làm khác Plan (thêm bớt files, sửa sai logic, đổi tech stack v.v...) mà KHÔNG CÓ giải thích hợp lý trong mục PIVOTS & DEAD ENDS, hãy đánh dấu 🔴 RISK CAO: LỆCH HƯỚNG LOGIC (Goal Drift) và giải thích sự mâu thuẫn vào mục Risks của log báo cáo."
     else:
         print("🔍 Kích hoạt [Soft Audit] - Không tìm thấy chỉ định Plan.")
@@ -207,23 +340,9 @@ def call_gemini(brief: str, diff: str, plan: str = "") -> str:
         }
     }
     
-    data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
-    
     print(f"🤖 Gọi Gemini qua HTTP ({GEMINI_MODEL})...")
-    
-    try:
-        with urllib.request.urlopen(req) as response:
-            result = json.loads(response.read().decode("utf-8"))
-            return result["candidates"][0]["content"]["parts"][0]["text"]
-    except urllib.error.HTTPError as e:
-        error_info = e.read().decode("utf-8")
-        print(f"❌ Lỗi API HTTP: {e.code} {e.reason}")
-        print(error_info)
-        sys.exit(1)
-    except Exception as e:
-        print(f"❌ Lỗi kết nối: {str(e)}")
-        sys.exit(1)
+    result = _http_post_with_retry(url, payload)
+    return result["candidates"][0]["content"]["parts"][0]["text"]
 
 
 # ─── COMMAND: --scribe ────────────────────────────────────────────────────────
@@ -271,6 +390,7 @@ def cmd_scribe(mock: bool):
     # 1. Đọc input
     brief = read_file(brief_path, "Session Brief", required=True)
     diff  = read_file(diff_path,  "Git Diff", required=False)
+    diff = _filter_diff(diff)
     
     # 1.5. Trích xuất Plan Path và Load Plan (Tầng 2 Audit)
     import re
@@ -336,27 +456,12 @@ def cmd_scribe(mock: bool):
         # Ghi session log
         session_file.write_text(session_log, encoding="utf-8")
         
-        # Cập nhật Index
+        # Cập nhật Index an toàn (atomic write + lock)
         if INDEX_FILE.exists():
-            lines = INDEX_FILE.read_text(encoding="utf-8").splitlines()
-            insert_idx = -1
-            
-            # Tìm vị trí ngay dưới dòng phân cách của Master Index
-            for i, line in enumerate(lines):
-                if line.startswith("|------|---------"):
-                    insert_idx = i + 1
-                    break
-                    
-            if insert_idx != -1:
-                lines.insert(insert_idx, index_row)
-                INDEX_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
-            else:
-                # Fallback nếu không tìm thấy bảng
-                with INDEX_FILE.open("a", encoding="utf-8") as f:
-                    f.write(f"\n{index_row}\n")
+            _atomic_write_index(INDEX_FILE, index_row)
         
         # ── Phase 3.3: Soft-Delete → Trash (không xóa vĩnh viễn) ──────────
-        trash_slot = TRASH_DIR / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        trash_slot = TRASH_DIR / datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")
         trash_slot.mkdir(parents=True, exist_ok=True)
         if project_dir and project_dir.exists():
             # Di chuyển cả thư mục project vào trash
@@ -447,6 +552,7 @@ def cmd_audit(plan_path_arg: str = ""):
         else:
             diff = "(Không có thay đổi nào)"
 
+    diff = _filter_diff(diff)
     print(f"✅ Git diff: {len(diff)} chars từ [{cwd.name}]")
 
     # 2. Tìm implementation_plan.md
@@ -489,9 +595,11 @@ def cmd_audit(plan_path_arg: str = ""):
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
 
-    user_msg = f"<GIT_DIFF>\n{diff}\n</GIT_DIFF>"
+    safe_diff = _sanitize_tags(_redact_secrets(diff))
+    user_msg = f"<GIT_DIFF>\n{safe_diff}\n</GIT_DIFF>"
     if plan:
-        user_msg += f"\n\n<PLAN>\n{plan}\n</PLAN>"
+        safe_plan = _sanitize_tags(_redact_secrets(plan))
+        user_msg += f"\n\n<PLAN>\n{safe_plan}\n</PLAN>"
 
     payload = {
         "system_instruction": {"parts": [{"text": AUDIT_PROMPT}]},
@@ -500,16 +608,8 @@ def cmd_audit(plan_path_arg: str = ""):
     }
 
     print("🤖 Đang chạy audit...")
-    data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
-
-    try:
-        with urllib.request.urlopen(req) as response:
-            result_json = json.loads(response.read().decode("utf-8"))
-            answer = result_json["candidates"][0]["content"]["parts"][0]["text"]
-    except urllib.error.HTTPError as e:
-        print(f"❌ API Error: {e.code} {e.read().decode()}")
-        sys.exit(1)
+    result_json = _http_post_with_retry(url, payload)
+    answer = result_json["candidates"][0]["content"]["parts"][0]["text"]
 
     # 4. In kết quả — READ-ONLY, không ghi file, không chạm Index
     print("\n" + "═" * 60)
@@ -690,11 +790,12 @@ def cmd_digest(project_filter: str = "", last_days: int = 0):
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
 
+    safe_combined = _sanitize_tags(_redact_secrets(combined))
     user_msg = (
         f"Project filter: {proj_label}\n"
         f"Date range: {date_range}\n"
         f"Sessions count: {len(parts)}\n\n"
-        f"<SESSION_LOGS>\n{combined}\n</SESSION_LOGS>"
+        f"<SESSION_LOGS>\n{safe_combined}\n</SESSION_LOGS>"
     )
 
     payload = {
@@ -704,19 +805,8 @@ def cmd_digest(project_filter: str = "", last_days: int = 0):
     }
 
     print("🤖 Đang tổng hợp digest...")
-    data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
-
-    try:
-        with urllib.request.urlopen(req) as response:
-            result_json = json.loads(response.read().decode("utf-8"))
-            digest_text = result_json["candidates"][0]["content"]["parts"][0]["text"].strip()
-    except urllib.error.HTTPError as e:
-        print(f"❌ API Error: {e.code} {e.read().decode()}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"❌ Lỗi kết nối: {str(e)}")
-        sys.exit(1)
+    result_json = _http_post_with_retry(url, payload)
+    digest_text = result_json["candidates"][0]["content"]["parts"][0]["text"].strip()
 
     # 6. In ra terminal (luôn)
     print("\n" + "═" * 60)
