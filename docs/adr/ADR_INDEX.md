@@ -1,0 +1,9 @@
+# 🗺️ ADR Index — Shadow Scribe Project
+
+> Architecture Decision Records — Bản đồ "đường sống đường chết"
+
+| ID | Vấn đề | Ngày | Status | File |
+|----|--------|------|--------|------|
+| 001 | Watchdog Architecture: Anti tự làm vs External Agent | 14/04/2026 | 🟢 ACCEPTED | [→](001_watchdog_architecture.md) |
+| 002 | Dual-Tier Audit: `scribe` (Destructive) vs `audit` (Read-only) | 14/04/2026 | 🟢 ACCEPTED | [→](002_dual_tier_audit.md) |
+| 003 | Digest Architecture: Subcommand vs Flag vs Separate Script | 14/04/2026 | 🟢 ACCEPTED | [→](003_digest_architecture.md) |
