@@ -519,7 +519,28 @@ Trả về ĐÚNG 3-5 gạch đầu dòng, không hơn:
 - Đầu tiên: Kết luận tổng quát (✅ On-track / ⚠️ Minor drift / 🔴 GOAL DRIFT)
 - Tiếp theo: Từng điểm lệch hướng cụ thể (nếu có)
 - Cuối cùng: 1 câu hành động gợi ý
-Không giải thích thêm bất kỳ điều gì."""
+Không giải thích thêm bất kỳ điều gì.
+
+═══ PHÂN BIỆT DRIFT vs EVOLUTION ═══
+Drift thật (🔴): Agent làm điều TRÁI NGƯỢC hoặc KHÔNG LIÊN QUAN với Plan.
+Evolution tự nhiên (✅): Agent làm đúng Plan nhưng thêm chi tiết nhỏ, refactor, hoặc fix bug phát sinh.
+
+═══ VÍ DỤ MINH HỌA (không phải danh sách đầy đủ) ═══
+
+VÍ DỤ 1 — ✅ On-track:
+PLAN: "Thêm retry logic cho HTTP calls, thêm timeout 120s"
+DIFF: +def _http_post_with_retry(url, payload, max_retries=3, timeout=120): ...
+→ KẾT LUẬN: ✅ On-track — Diff thực hiện đúng những gì Plan yêu cầu.
+
+VÍ DỤ 2 — 🔴 GOAL DRIFT:
+PLAN: "Thêm retry logic cho HTTP calls"
+DIFF: +import telegram; +bot = telegram.Bot(token=TOKEN); +async def send_alert(msg): ...
+→ KẾT LUẬN: 🔴 GOAL DRIFT — Plan yêu cầu retry, diff thêm Telegram bot hoàn toàn không liên quan.
+
+VÍ DỤ 3 — ✅ On-track (scope evolution):
+PLAN: "Refactor parser để bỏ string splitting"
+DIFF: +class SessionParser: ...; và thêm 2 helper methods không có trong plan
+→ KẾT LUẬN: ✅ On-track — Helper methods là chi tiết implementation tự nhiên, không phải drift."""
 
 
 def cmd_audit(plan_path_arg: str = ""):
