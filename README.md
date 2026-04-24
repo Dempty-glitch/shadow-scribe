@@ -85,6 +85,7 @@ graph TD
 ### Yêu cầu
 - Python ≥ 3.9 (chỉ dùng thư viện chuẩn, **không cần pip install**)
 - Gemini API Key miễn phí → [Lấy tại đây](https://aistudio.google.com/)
+  > ⚠️ **Lưu ý bảo mật:** Hãy dùng API Key chính hãng từ Google (miễn phí/giá rẻ). **Tuyệt đối KHÔNG** dùng các API Key trôi nổi, proxy hoặc dịch vụ bên thứ 3 ẩn danh, vì watchdog sẽ gửi toàn bộ source code và nhật ký làm việc của bạn qua API đó. Dùng hàng trôi nổi = nguy cơ lộ bí mật dự án.
 
 ### Cài đặt
 

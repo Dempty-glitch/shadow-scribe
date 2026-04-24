@@ -15,7 +15,8 @@ Watchdog   = BỘ NÃO         — đọc, phân tích, tổng hợp (dùng Gemi
 
 ⛔ Agent **KHÔNG BAO GIỜ** tự đọc log/conversation rồi tổng hợp thay Watchdog.
 Watchdog script: `~/Documents/shadow scribe/watchdog_scribe.py`
-API Key: tự động load từ file `~/Documents/agent_vault/.env`
+API Key: tự động load từ file `~/Documents/agent_vault/.env`.
+  *(⚠️ Phải dùng API chính hãng. Tuyệt đối không dùng API proxy trôi nổi để tránh lộ source code/bảo mật)*
 
 ---
 
