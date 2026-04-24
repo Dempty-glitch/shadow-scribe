@@ -56,6 +56,20 @@
 
 ---
 
+### Phase 3.4 — Security Hardening *(24/04/2026)*
+**Mục tiêu:** Vá 6 lỗ hổng bảo mật và reliability, nâng từ "prototype chạy được" lên "production-ready".
+
+- `_redact_secrets()` — Regex mask API keys/tokens/PEM trước khi gửi Gemini API
+- `_sanitize_tags()` — Escape XML-like tags trong user content (chống prompt injection)
+- `_atomic_write_index()` — `fcntl.flock` + `tempfile` atomic rename cho `00_INDEX_MATRIX.md`
+- `_http_post_with_retry()` — 120s timeout + exponential backoff retry 3 lần
+- Trash timestamp precision: giây → microsecond (`%f`)
+- `_filter_diff()` — Loại bỏ lockfiles, `.DS_Store` khỏi diff payload
+
+**Tham khảo:** [Audit Report](../agent_vault/artifacts/2026-04/shadow_scribe_audit_24_04_26.md) — Bản đánh giá kỹ thuật 10 vấn đề
+
+---
+
 ## 🔜 Kế hoạch
 
 ### Phase 4 — Telegram Integration *(Planned)*
@@ -162,6 +176,7 @@ watchdog query "thanh toán stripe"
 | 2 | `watchdog scribe` | ✅ Done | 1.0.0 |
 | 3.1 | `watchdog audit` (Hard + Soft) | ✅ Done | 1.0.1 |
 | 3.2 | `watchdog digest` (project-filtered) | ✅ Done | 1.1.0 |
+| 3.4 | Security Hardening (Redact, Escape, Atomic, Retry) | ✅ Done | 1.2.1 |
 | 4 | Telegram Integration | ⚪ Planned | — |
 | 5 | Sequential Thinking (Internal Monologue) | 🔮 Future | — |
 | 6 | Autonomous Vault Query (Zero-Dep RAG) | 🔮 Future | — |

@@ -1,4 +1,4 @@
-# 🛡️ Shadow Scribe — Sổ tay Vận hành (v1.2.0)
+# 🛡️ Shadow Scribe — Sổ tay Vận hành (v1.2.1)
 
 > File này là **hướng dẫn vận hành duy nhất** cho AI Agent.
 > Nếu bạn là Agent IDE (Antigravity, Cursor, Windsurf, Claude Code), hãy đọc hết file này trước khi hành động.
