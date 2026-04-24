@@ -32,10 +32,32 @@ VAULT_DIR = Path.home() / "Documents" / "agent_vault"
 RAW_LOGS_DIR = VAULT_DIR / "raw_logs"
 SESSIONS_DIR = VAULT_DIR / "sessions"
 INDEX_FILE = VAULT_DIR / "00_INDEX_MATRIX.md"
+TRASH_DIR = VAULT_DIR / "trash"
+ENV_FILE = VAULT_DIR / ".env"
+
+# ── Load .env từ agent_vault (Zero-Dependency, không cần python-dotenv) ──
+def _load_env_file(env_path: Path):
+    """Đọc file .env đơn giản (KEY=VALUE), inject vào os.environ nếu chưa có."""
+    if not env_path.exists():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")  # Bỏ quotes nếu có
+        if key and key not in os.environ:  # Không ghi đè env var đã có
+            os.environ[key] = value
+
+_load_env_file(ENV_FILE)
+# ─────────────────────────────────────────────────────────────────────────────
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL = "gemini-2.5-flash"
-VERSION = "1.1.0"  # Phase 3.2: digest subcommand
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+VERSION = "1.2.0"  # Phase 3.3: Blood Lessons, Directory Routing, Soft-Delete
 
 # ─── PROMPT ───────────────────────────────────────────────────────────────────
 
@@ -81,6 +103,10 @@ Tối đa 10 file. Nếu vượt, gom phần còn lại thành 1 dòng "và N fi
 ## 💡 Quyết định quan trọng
 {Liệt kê từ DECISIONS trong brief. Giữ nguyên ý, có thể diễn đạt rõ hơn}
 
+## 🩸 Blood Lessons (Lỗi đã gặp & Bài học)
+{Nếu brief có section BLOOD LESSONS → liệt kê. Format: "❌ Lỗi → ✅ Fix"}
+{Nếu brief ghi "Luồng code trơn tru" → ghi "Không có lỗi đáng chú ý trong phiên này."}
+
 ## ⚠️ Risks & Bài học
 {Liệt kê từ RISKS. Mỗi risk ghi severity 🔴/🟡/🟢}
 
@@ -101,6 +127,7 @@ Tối đa 10 file. Nếu vượt, gom phần còn lại thành 1 dòng "và N fi
 - TUYỆT ĐỐI KHÔNG bọc output trong ```markdown``` code block
 - KHÔNG ĐƯỢC bịa thêm file, commit, hoặc code không có trong input
 - KHÔNG ĐƯỢC bỏ sót thông tin từ SESSION_BRIEF
+- Nếu SESSION_BRIEF có section BLOOD LESSONS, PHẢI trích xuất vào phần 🩸 Blood Lessons
 - Status: 🟢 = xong tốt, 🟡 = có vấn đề, 🔴 = fail/blocked, ⚪ = chưa làm
 - Viết tiếng Việt, thuật ngữ kỹ thuật giữ tiếng Anh
 
@@ -202,6 +229,7 @@ def call_gemini(brief: str, diff: str, plan: str = "") -> str:
 # ─── COMMAND: --scribe ────────────────────────────────────────────────────────
 
 def cmd_scribe(mock: bool):
+    import shutil
     print("\n" + "═" * 60)
     print("🛡️  SHADOW SCRIBE — Session Compiler")
     print("═" * 60)
@@ -209,9 +237,36 @@ def cmd_scribe(mock: bool):
         print("🧪 MODE: DRY-RUN (mock data, không ghi file)\n")
         brief_path = RAW_LOGS_DIR / "session_brief_mock.md"
         diff_path  = RAW_LOGS_DIR / "git_diff_mock.txt"
+        project_dir = None
     else:
-        brief_path = RAW_LOGS_DIR / "session_brief.md"
-        diff_path  = RAW_LOGS_DIR / "git_diff.txt"
+        # ── Phase 3.3: Directory-based Routing ──────────────────────────────
+        # Ưu tiên: scan raw_logs/ tìm subdirectory chứa session_brief.md
+        # Fallback: đọc flat file (backward compat với v1.1.0)
+        project_dir = None
+        project_subdirs = sorted(
+            [d for d in RAW_LOGS_DIR.iterdir() if d.is_dir() and not d.name.startswith('.')],
+            key=lambda d: d.stat().st_mtime, reverse=True
+        ) if RAW_LOGS_DIR.exists() else []
+
+        if project_subdirs:
+            # Tìm thư mục đầu tiên có session_brief.md
+            for d in project_subdirs:
+                if (d / "session_brief.md").exists():
+                    project_dir = d
+                    break
+            if not project_dir:
+                project_dir = project_subdirs[0]  # Fallback: thư mục mới nhất
+
+        if project_dir:
+            print(f"📁 Project directory: raw_logs/{project_dir.name}")
+            brief_path = project_dir / "session_brief.md"
+            diff_path  = project_dir / "git_diff.txt"
+        else:
+            # Backward compat: flat structure (v1.1.0)
+            print("⚠️  Không tìm thấy project subdirectory. Fallback: flat raw_logs/ (v1.1.0 compat)")
+            brief_path = RAW_LOGS_DIR / "session_brief.md"
+            diff_path  = RAW_LOGS_DIR / "git_diff.txt"
+        # ─────────────────────────────────────────────────────────────────────
 
     # 1. Đọc input
     brief = read_file(brief_path, "Session Brief", required=True)
@@ -300,14 +355,40 @@ def cmd_scribe(mock: bool):
                 with INDEX_FILE.open("a", encoding="utf-8") as f:
                     f.write(f"\n{index_row}\n")
         
-        # Dọn dẹp
-        if brief_path.exists(): brief_path.unlink()
-        if diff_path.exists(): diff_path.unlink()
+        # ── Phase 3.3: Soft-Delete → Trash (không xóa vĩnh viễn) ──────────
+        trash_slot = TRASH_DIR / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        trash_slot.mkdir(parents=True, exist_ok=True)
+        if project_dir and project_dir.exists():
+            # Di chuyển cả thư mục project vào trash
+            shutil.move(str(project_dir), str(trash_slot / project_dir.name))
+            print(f"🗑️  raw_logs/{project_dir.name}/ → trash/{trash_slot.name}/")
+        else:
+            # Fallback: di chuyển flat files
+            flat_slot = trash_slot / "_flat"
+            flat_slot.mkdir(parents=True, exist_ok=True)
+            if brief_path.exists(): shutil.move(str(brief_path), str(flat_slot / brief_path.name))
+            if diff_path.exists():  shutil.move(str(diff_path),  str(flat_slot / diff_path.name))
+            print(f"🗑️  raw_logs/ (flat) → trash/{trash_slot.name}/_flat/")
+            
+        # ── Auto-cleanup: Dọn rác cũ hơn 30 ngày ─────────────────────────
+        retention_days = 30
+        now_ts = datetime.now().timestamp()
+        deleted_count = 0
+        if TRASH_DIR.exists():
+            for slot in TRASH_DIR.iterdir():
+                if slot.is_dir() and not slot.name.startswith('.'):
+                    # Tính tuổi của folder rác
+                    if (now_ts - slot.stat().st_mtime) > (retention_days * 86400):
+                        shutil.rmtree(str(slot), ignore_errors=True)
+                        deleted_count += 1
+        # ─────────────────────────────────────────────────────────────────────
 
         # —— Silent Assassin: chỉ in tóm tắt + Risk ——
         print("\n" + "═" * 60)
         print(f"✅ Session Log: {session_file}")
-        print(f"✅ Index đã cập nhật | 🧹 raw_logs đã dọn")
+        
+        cleanup_msg = f" (đã dọn {deleted_count} folder rác > 30 ngày)" if deleted_count > 0 else ""
+        print(f"✅ Index đã cập nhật | 🗑️ raw_logs → trash/{cleanup_msg}")
         
         # Trích xuất và in phần Risks
         risks_match = re.search(r'## ⚠️ Risks.*?(?=\n## |\Z)', session_log, re.DOTALL)

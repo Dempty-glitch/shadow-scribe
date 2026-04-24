@@ -3,7 +3,7 @@
 > **The Execution Brain & Shadow Scribe Architecture.**  
 > Hệ thống Quản trị Tri thức, Giám sát và Kiểm toán (Audit) vĩnh cửu dành cho AI Agents (Cursor, Windsurf, Antigravity).
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)]()
+[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)]()
 [![Python](https://img.shields.io/badge/python-%E2%89%A5%203.9-brightgreen.svg)]()
 [![Zero Dependency](https://img.shields.io/badge/dependencies-0-success.svg)]()
 [![Powered by Gemini](https://img.shields.io/badge/Powered%20by-Gemini%202.5%20Flash-orange.svg)]()
@@ -80,43 +80,66 @@ graph TD
 
 ---
 
-## 🚀 Cài đặt (Setup — Làm 1 lần duy nhất)
+## 🚀 Cài đặt (Quick Start — Làm 1 lần duy nhất)
 
-### Bước 1 — Set Gemini API Key
-Lấy API Key miễn phí tại [Google AI Studio](https://aistudio.google.com/), thêm vào `~/.zshrc`:
+### Yêu cầu
+- Python ≥ 3.9 (chỉ dùng thư viện chuẩn, **không cần pip install**)
+- Gemini API Key miễn phí → [Lấy tại đây](https://aistudio.google.com/)
+
+### Cài đặt
+
 ```bash
-export GEMINI_API_KEY="your_gemini_api_key_here"
+# 1. Clone repo
+git clone https://github.com/Dempty-glitch/shadow-scribe.git
+cd shadow-scribe
+
+# 2. Chạy setup (tạo vault, .env, alias — tất cả tự động)
+./setup.sh
 ```
 
-### Bước 2 — Thêm `watchdog` function vào `~/.zshrc`
-Copy toàn bộ block này vào cuối file `~/.zshrc`:
-```bash
-# ─── Shadow Scribe Watchdog ───────────────────────────
-#   watchdog scribe                          → cuối ngày, ghi Session Log + Index
-#   watchdog scribe --mock                   → dry-run, không ghi file
-#   watchdog audit                           → soi goal drift (read-only)
-#   watchdog audit --plan /path/to/plan.md   → chỉ định rõ file plan
-#   watchdog digest                          → tổng hợp tất cả sessions
-#   watchdog digest --project shadow-scribe --last 30
-function watchdog() {
-    python3 ~/Documents/shadow\ scribe/watchdog_scribe.py "$@"
-}
-# ──────────────────────────────────────────────────────
-```
+Script `setup.sh` sẽ tự động:
+- ✅ Tạo vault tại `~/Documents/agent_vault/` (với đầy đủ thư mục con)
+- ✅ Hỏi bạn nhập Gemini API Key → lưu vào `.env`
+- ✅ Copy `GUIDE.md` (sổ tay cho Agent) vào vault
+- ✅ Thêm alias `watchdog` vào `.zshrc` / `.bashrc`
+- ✅ Tạo `00_INDEX_MATRIX.md` (bảng mục lục sessions)
 
-### Bước 3 — Reload và test
+### Kiểm tra
+
 ```bash
-source ~/.zshrc
+source ~/.zshrc   # hoặc ~/.bashrc
 watchdog --help
 ```
+
+### Bắt đầu sử dụng
+
+Mở IDE và gửi cho Agent của bạn (Cursor, Windsurf, Claude Code, Antigravity):
+```
+Đọc file ~/Documents/agent_vault/GUIDE.md rồi bắt đầu làm việc.
+```
+Agent sẽ tự biết cách: nạp context đầu phiên, `@dump` cuối phiên, chạy `watchdog scribe`, v.v.
 
 ---
 
 ## 🕹️ Hướng dẫn sử dụng (Workflow)
 
+> [!IMPORTANT]
+> **Nguyên tắc kiến trúc:** Agent IDE (Antigravity/Cursor/Windsurf) chỉ là **Điều phối viên** — gom file, chạy lệnh.
+> **Watchdog (Gemini Flash)** mới là **Bộ não** đọc và phân tích. Agent **KHÔNG BAO GIỜ** tự đọc rồi tổng hợp — làm vậy tốn token đắt đỏ và mất ý nghĩa gốc của dự án.
+
 ### Trong lúc Code (Giao tiếp với AI IDE)
 - **Chốt kiến trúc:** Gõ `@adr [Tên vấn đề]` → AI tạo ngay "Bản đồ đường sống/đường chết" lưu vào Vault.
-- **Kết thúc ngày:** Gõ `@dump` → AI viết 15 dòng tóm tắt và chụp `git diff` ra file tạm.
+- **Kết thúc ngày (3-in-1):** Gõ `@dump` → AI tự động làm 3 việc:
+  1. Viết `session_brief.md` (15 dòng, bao gồm mục 🩸 **Blood Lessons**) vào `raw_logs/{project}/`
+  2. Chụp `git diff` vào `raw_logs/{project}/git_diff.txt`
+  3. Tự gọi `watchdog scribe` → Gemini Flash tổng hợp → Log được lưu, raw_logs dọn sạch
+
+### Retroactive Dump (Dump bù cho ngày đã quên)
+Nếu quên dump, Agent IDE vẫn có thể dump bù bằng cách:
+- **Có git history:** Dùng `git log --since="{ngày}"` để gom code changes → viết brief → chạy watchdog.
+- **Có conversation log:** Copy file chat (`overview.txt` hoặc folder chat) vào `raw_logs/{project}/` → Watchdog (Gemini Flash 1M context) đọc trực tiếp và tổng hợp.
+- **Chất lượng:** Conversation log cho kết quả **tốt hơn** git log vì có cả Blood Lessons và Decisions.
+- **Chi phí:** ~$0.03/lần (200k token input × Gemini Flash).
 
 ### Trên Terminal (Sức mạnh của Watchdog)
 
@@ -133,18 +156,21 @@ watchdog --help
 <details>
 <summary>📋 Chi tiết flags & input requirements</summary>
 
-**`watchdog scribe` cần có trước khi chạy:**
+**`watchdog scribe` cần có trước khi chạy (v1.2.0):**
 ```
 ~/Documents/agent_vault/raw_logs/
-├── session_brief.md   # Anti viết qua @dump (~15 dòng)
-└── git_diff.txt       # Chụp bằng lệnh bên dưới
+└── {project-name}/             # ⬅️ Tên thư mục = tên project (kebab-case)
+    ├── session_brief.md        # AI viết qua @dump (~15 dòng + 🩸 Blood Lessons)
+    └── git_diff.txt            # Chụp bằng lệnh bên dưới
 ```
 ```bash
 # Từ thư mục project:
-git diff > ~/Documents/agent_vault/raw_logs/git_diff.txt
+mkdir -p ~/Documents/agent_vault/raw_logs/{project-name}
+git diff > ~/Documents/agent_vault/raw_logs/{project-name}/git_diff.txt
 # Nếu không có staged changes:
-git show HEAD > ~/Documents/agent_vault/raw_logs/git_diff.txt
+git show HEAD > ~/Documents/agent_vault/raw_logs/{project-name}/git_diff.txt
 ```
+> 💡 Backward compat: Watchdog vẫn đọc được flat `raw_logs/session_brief.md` (v1.1.0).
 
 **`watchdog audit` auto-scan `implementation_plan.md`:**
 1. Tìm trong CWD (thư mục project hiện tại)
@@ -166,13 +192,17 @@ git show HEAD > ~/Documents/agent_vault/raw_logs/git_diff.txt
 ```
 ~/Documents/agent_vault/
 ├── 00_INDEX_MATRIX.md          # Master Index — Bảng mục lục vĩnh cửu
-├── raw_logs/                   # Trạm trung chuyển (Watchdog đọc xong sẽ xóa)
-│   ├── session_brief.md        # Anti viết (~15 dòng)
-│   └── git_diff.txt            # git diff snapshot
+├── raw_logs/                   # Trạm trung chuyển (Watchdog đọc xong sẽ dọn)
+│   └── {project-name}/         # ⬅️ v1.2.0: Mỗi project 1 thư mục riêng
+│       ├── session_brief.md    # AI viết (~15 dòng + 🩸 Blood Lessons)
+│       └── git_diff.txt        # git diff snapshot
 ├── sessions/                   # Full Session Logs (Gemini Flash tổng hợp)
 │   └── YYYY-MM/DD_MM_YY.md
 ├── digests/                    # Báo cáo tổng hợp từ watchdog digest
 │   └── {project}_{date}.md
+├── trash/                      # ⬅️ v1.2.0: Soft-Delete — raw_logs không xóa vĩnh viễn
+│   └── YYYY-MM-DD_HH-MM-SS/   # Slot theo timestamp, phục hồi dễ dàng
+│       └── {project-name}/
 ├── artifacts/                  # File nháp, schema, migration gom từ các phiên
 │   └── YYYY-MM/
 └── projects/
@@ -187,17 +217,21 @@ git show HEAD > ~/Documents/agent_vault/raw_logs/git_diff.txt
 
 | Biến | Mặc định | Mô tả |
 |------|----------|-------|
-| `GEMINI_API_KEY` | *(required)* | Google AI API Key — [lấy miễn phí tại đây](https://aistudio.google.com/) |
+| `GEMINI_API_KEY` | *(required)* | Google AI API Key — [lấy miễn phí tại đây](https://aistudio.google.com/). Lưu tại `~/Documents/agent_vault/.env` |
 | `GEMINI_MODEL` | `gemini-2.5-flash` | Model dùng cho scribe + audit + digest |
 | `VAULT_DIR` | `~/Documents/agent_vault/` | Root của vault |
 
+> 💡 **Mẹo:** Bạn không cần export biến môi trường. Watchdog sẽ tự đọc file `~/Documents/agent_vault/.env`.
+> 💡 **Self-Cleaning:** Thư mục `trash/` sẽ tự động dọn các file cũ hơn 30 ngày mỗi lần bạn chạy watchdog.
+
 ---
 
-## 🗺️ Roadmap
+## 🗺️ Roadmap (V1.2+ & V2.0)
 
 - [x] **Phase 1 & 2:** Giao thức `@dump`, `@adr` và Cấu trúc Vault cơ bản.
 - [x] **Phase 3.1:** `watchdog audit` — Dual-Tier Audit (Hard + Soft), read-only.
 - [x] **Phase 3.2:** `watchdog digest` — Project-filtered summary, dual output.
+- [x] **Phase 3.3:** Bulletproof Scribe — 🩸 Blood Lessons, Directory Routing, Soft-Delete, Auto-Cleanup, Env Loader (v1.2.0)
 - [ ] **Phase 4:** Tích hợp Telegram Bot — nhận cảnh báo Goal Drift qua điện thoại.
 - [ ] **Phase 5:** Git Pre-commit Hook — tự động chặn commit nếu Audit phát hiện lỗi.
 

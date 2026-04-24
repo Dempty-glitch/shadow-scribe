@@ -28,5 +28,8 @@ secrets.json
 *.log
 *.tmp
 
+# Watchdog Soft-Delete trash (raw_logs backup, not for commit)
+trash/
+
 # Screenshot placeholders (user adds real ones)
 # docs/ is tracked but keep empty screenshots out
