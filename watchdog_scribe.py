@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shadow Scribe v1.2.2 — Watchdog Agent for AI sessions.
+"""Shadow Scribe v1.3.0 — Watchdog Agent for AI sessions.
 
 Thin entry point: argparse only. All logic lives in shadow_scribe/ package.
 """

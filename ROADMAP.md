@@ -82,9 +82,25 @@
 
 ---
 
+### Phase 6 — Lightweight Agentic RAG (`watchdog query`) *(26/04/2026)*
+**Mục tiêu:** Giải bài toán cold-start — agent tự query vault để lấy context cụ thể thay vì user phải mớm.
+
+- `watchdog query <keyword>` với 4 flags: `keyword`, `--project`, `--top`, `--smart`
+- **Parent-Child Retrieval:** child=INDEX_MATRIX row, parent=session log, grandparent=ADR
+- **2-stage retrieval:** Stage 1 sparse grep (cheap-fast) → Stage 2 Gemini LLM rerank (smart-fallback) trigger khi `<2 hits`, `>top hits`, hoặc `--smart`
+- Output ASCII table (Date | Project | TL;DR | Link) — KHÔNG dump nội dung file (progressive disclosure)
+- Zero new dependencies — reuse `gemini.py`, `security.py`, `io_utils.py`
+- 22 unit tests cover parser/filter/render/Stage 2 trigger logic
+
+**ADR liên quan:**
+- [ADR-006 — Lightweight Agentic RAG (Architecture)](../agent_vault/projects/shadow-scribe/adr/006_phase6_lightweight_agentic_rag.md)
+- [ADR-007 — Parent-Child + Sparse-LLM Hybrid Reranking (Implementation)](../agent_vault/projects/shadow-scribe/adr/007_phase6_parent_child_hybrid_reranking.md)
+
+---
+
 ## 🔜 Kế hoạch
 
-### Phase 4 — Telegram Integration *(Planned)*
+### Phase 4 — Telegram Integration *(Pending — đợi stability)*
 **Mục tiêu:** Chạy audit & digest từ xa qua Telegram bot.
 
 **Scope dự kiến:**
@@ -190,7 +206,7 @@ watchdog query "thanh toán stripe"
 | 3.2 | `watchdog digest` (project-filtered) | ✅ Done | 1.1.0 |
 | 3.4 | Security Hardening (Redact, Escape, Atomic, Retry) | ✅ Done | 1.2.1 |
 | 3.5 | Package Refactor, CI/CD, JSON Parser | ✅ Done | 1.2.2 |
-| 4 | Telegram Integration | ⚪ Planned | — |
-| 5 | Sequential Thinking (Internal Monologue) | 🔮 Future | — |
-| 6 | Autonomous Vault Query (Zero-Dep RAG) | 🔮 Future | — |
+| 6 | Lightweight Agentic RAG (`watchdog query`) | ✅ Done | 1.3.0 |
+| 4 | Telegram Integration | ⏸ Pending | — |
+| 5 | ~~Internal Monologue~~ | ❌ Dropped (skill layer, ngoài scope) | — |
 
