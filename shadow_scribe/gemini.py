@@ -9,7 +9,7 @@ import urllib.request
 
 
 from shadow_scribe.config import get_gemini_api_key, get_gemini_model
-from shadow_scribe.prompts import SYSTEM_PROMPT
+from shadow_scribe.prompts import QUERY_PROMPT, SYSTEM_PROMPT
 from shadow_scribe.security import _redact_secrets, _sanitize_tags
 
 
@@ -176,5 +176,39 @@ def call_gemini_audit(diff: str, plan: str, audit_prompt: str) -> str:
     }
 
     print("🤖 Đang chạy audit...")
+    result = _http_post_with_retry(url, payload)
+    return result["candidates"][0]["content"]["parts"][0]["text"]
+
+
+def call_gemini_query(keyword: str, index_content: str) -> str:
+    """Stage 2 LLM rerank cho `watchdog query` (Phase 6).
+
+    Gửi keyword + toàn bộ INDEX_MATRIX vào Gemini, nhận về top rows relevant.
+    Reuse security pipeline (redact + sanitize) như Phase 3.4.
+    """
+    api_key = get_gemini_api_key()
+    model = get_gemini_model()
+
+    if not api_key:
+        print("❌ GEMINI_API_KEY chưa set.")
+        sys.exit(1)
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+
+    safe_keyword = _sanitize_tags(_redact_secrets(keyword))
+    safe_index = _sanitize_tags(_redact_secrets(index_content))
+
+    user_msg = (
+        f"<QUERY>\n{safe_keyword}\n</QUERY>\n\n"
+        f"<INDEX_MATRIX>\n{safe_index}\n</INDEX_MATRIX>"
+    )
+
+    payload = {
+        "system_instruction": {"parts": [{"text": QUERY_PROMPT}]},
+        "contents": [{"parts": [{"text": user_msg}]}],
+        "generationConfig": {"temperature": 0.1},
+    }
+
+    print(f"🤖 Stage 2: Gemini semantic rerank ({model})...")
     result = _http_post_with_retry(url, payload)
     return result["candidates"][0]["content"]["parts"][0]["text"]
