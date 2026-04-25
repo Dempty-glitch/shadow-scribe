@@ -7,6 +7,11 @@ __pycache__/
 dist/
 build/
 
+# Tool caches (ruff, mypy, pytest)
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
 # Secrets & Environment
 .env
 .env.*
