@@ -20,7 +20,7 @@ jobs:
       - name: Type check with Mypy
         run: mypy shadow_scribe/ --ignore-missing-imports
       - name: Run unit tests
-        run: pytest tests/test_helpers.py -v
+        run: pytest tests/test_helpers.py tests/test_query.py -v
       - name: Run regression tests
         run: python3 tests/test_audit_quality.py --mock
       - name: Syntax check entry point
