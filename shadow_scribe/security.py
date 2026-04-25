@@ -33,7 +33,7 @@ def _redact_secrets(text: str) -> str:
 
 # ─── Prompt injection defense ─────────────────────────────────────────────────
 
-_PROMPT_TAGS = ["SESSION_BRIEF", "GIT_DIFF", "PLAN", "SESSION_LOGS"]
+_PROMPT_TAGS = ["SESSION_BRIEF", "GIT_DIFF", "PLAN", "SESSION_LOGS", "INDEX_MATRIX", "QUERY"]
 
 
 def _sanitize_tags(text: str) -> str:
