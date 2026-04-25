@@ -3,7 +3,7 @@
 > **The Execution Brain & Shadow Scribe Architecture.**  
 > Hệ thống Quản trị Tri thức, Giám sát và Kiểm toán (Audit) vĩnh cửu dành cho AI Agents (Cursor, Windsurf, Antigravity).
 
-[![Version](https://img.shields.io/badge/version-1.2.1-blue.svg)]()
+[![Version](https://img.shields.io/badge/version-1.2.2-blue.svg)]()
 [![Python](https://img.shields.io/badge/python-%E2%89%A5%203.9-brightgreen.svg)]()
 [![Zero Dependency](https://img.shields.io/badge/dependencies-0-success.svg)]()
 [![Powered by Gemini](https://img.shields.io/badge/Powered%20by-Gemini%202.5%20Flash-orange.svg)]()
@@ -157,7 +157,7 @@ Nếu quên dump, Agent IDE vẫn có thể dump bù bằng cách:
 <details>
 <summary>📋 Chi tiết flags & input requirements</summary>
 
-**`watchdog scribe` cần có trước khi chạy (v1.2.1):**
+**`watchdog scribe` cần có trước khi chạy (v1.2.2):**
 ```
 ~/Documents/agent_vault/raw_logs/
 └── {project-name}/             # ⬅️ Tên thư mục = tên project (kebab-case)
@@ -234,6 +234,7 @@ git show HEAD > ~/Documents/agent_vault/raw_logs/{project-name}/git_diff.txt
 - [x] **Phase 3.2:** `watchdog digest` — Project-filtered summary, dual output.
 - [x] **Phase 3.3:** Bulletproof Scribe — 🩸 Blood Lessons, Directory Routing, Soft-Delete, Auto-Cleanup, Env Loader (v1.2.0)
 - [x] **Phase 3.4:** Security Hardening — Secrets Redact, XML Escape, Atomic Write, HTTP Retry, Diff Filter (v1.2.1)
+- [x] **Phase 3.5:** Package Refactor, CI/CD Pipeline & 3-Layer JSON Parser (v1.2.2)
 - [ ] **Phase 4:** Tích hợp Telegram Bot — nhận cảnh báo Goal Drift qua điện thoại.
 - [ ] **Phase 5:** Git Pre-commit Hook — tự động chặn commit nếu Audit phát hiện lỗi.
 

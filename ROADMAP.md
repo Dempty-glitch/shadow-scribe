@@ -70,6 +70,18 @@
 
 ---
 
+### Phase 3.5 — Package Refactor, CI/CD Pipeline & JSON Parser *(25/04/2026)*
+**Mục tiêu:** Trả tech debt, tách monolith thành package chuẩn PyPI, thiết lập CI matrix, chống sập parser vĩnh viễn.
+
+- Tách `watchdog_scribe.py` thành 8 modules trong thư mục `shadow_scribe/`
+- Thêm GitHub Actions CI test tự động matrix 3.9 + 3.12 (Ruff, Mypy, Pytest)
+- Cập nhật 14 unit tests cho security, gemini parser, path utils
+- Ép `response_mime_type: "application/json"` + 3-layer parser fallback
+
+**ADR liên quan:** [ADR-005 — Refactor Package CI JSON](../agent_vault/projects/shadow-scribe/adr/005_refactor_package_ci_json.md)
+
+---
+
 ## 🔜 Kế hoạch
 
 ### Phase 4 — Telegram Integration *(Planned)*
@@ -177,6 +189,7 @@ watchdog query "thanh toán stripe"
 | 3.1 | `watchdog audit` (Hard + Soft) | ✅ Done | 1.0.1 |
 | 3.2 | `watchdog digest` (project-filtered) | ✅ Done | 1.1.0 |
 | 3.4 | Security Hardening (Redact, Escape, Atomic, Retry) | ✅ Done | 1.2.1 |
+| 3.5 | Package Refactor, CI/CD, JSON Parser | ✅ Done | 1.2.2 |
 | 4 | Telegram Integration | ⚪ Planned | — |
 | 5 | Sequential Thinking (Internal Monologue) | 🔮 Future | — |
 | 6 | Autonomous Vault Query (Zero-Dep RAG) | 🔮 Future | — |
