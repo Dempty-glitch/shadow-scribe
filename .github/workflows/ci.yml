@@ -1,0 +1,27 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: pip install pytest ruff mypy
+      - name: Lint with Ruff
+        run: ruff check shadow_scribe/
+      - name: Type check with Mypy
+        run: mypy shadow_scribe/ --ignore-missing-imports
+      - name: Run unit tests
+        run: pytest tests/test_helpers.py -v
+      - name: Run regression tests
+        run: python3 tests/test_audit_quality.py --mock
+      - name: Syntax check entry point
+        run: python3 -m py_compile watchdog_scribe.py

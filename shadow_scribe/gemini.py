@@ -6,7 +6,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from pathlib import Path
+
 
 from shadow_scribe.config import get_gemini_api_key, get_gemini_model
 from shadow_scribe.prompts import SYSTEM_PROMPT
