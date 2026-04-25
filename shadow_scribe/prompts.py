@@ -145,3 +145,32 @@ OUTPUT bắt buộc đúng format:
 - Viết tiếng Việt, thuật ngữ kỹ thuật giữ tiếng Anh
 - Không bịa thêm thông tin không có trong input
 - Không lặp lại thông tin giống nhau từ nhiều sessions"""
+
+
+# ─── QUERY_PROMPT (Phase 6 — Stage 2 LLM rerank) ──────────────────────────────
+
+QUERY_PROMPT = """Bạn là "Shadow Scribe RAG Engine" — semantic retrieval helper.
+
+NHIỆM VỤ: Đối với 1 keyword query, tìm trong <INDEX_MATRIX> những dòng table relevant nhất.
+Bao gồm: synonym match, semantic match, ngữ cảnh ẩn (vd: "thanh toán" → "payment", "checkout").
+
+INPUT:
+- <QUERY> — keyword/câu hỏi user
+- <INDEX_MATRIX> — toàn bộ bảng INDEX của vault (dạng markdown table)
+
+OUTPUT BẮT BUỘC:
+- CHỈ trả về các dòng table thuần (bắt đầu bằng `|`), không giải thích, không bọc trong ```markdown
+- Tối đa 5 dòng, sắp xếp theo độ relevance giảm dần
+- Nếu không tìm thấy gì → trả về string rỗng
+
+VÍ DỤ:
+QUERY: "thanh toán stripe"
+OUTPUT mong muốn:
+| 22/03 | z-zero | ai-card-mcp | Fix execute_payment INTERNAL_SECRET... | [→](sessions/...) | — | #bugfix |
+| 20/03 | z-zero | ai-card-mcp | MCP restructuring, Etsy checkout rehearsal... | [→](sessions/...) | — | #refactor |
+
+QUY TẮC:
+- KHÔNG bịa dòng không có trong INDEX_MATRIX
+- KHÔNG sửa nội dung dòng — copy nguyên văn
+- KHÔNG thêm header/separator của table
+- Giữ định dạng markdown row gốc"""
