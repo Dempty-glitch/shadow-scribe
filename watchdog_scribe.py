@@ -11,6 +11,7 @@ load_env()  # Explicit — no side-effect on import
 
 from shadow_scribe.cmd_audit import cmd_audit
 from shadow_scribe.cmd_digest import cmd_digest
+from shadow_scribe.cmd_query import cmd_query
 from shadow_scribe.cmd_scribe import cmd_scribe
 
 
@@ -39,6 +40,24 @@ def main() -> None:
         help="Chỉ lấy sessions trong N ngày gần nhất (vd: --last 30). Bỏ trống = tất cả."
     )
 
+    # query (Phase 6 — Lightweight Agentic RAG)
+    query_parser = subparsers.add_parser(
+        "query", help="Tìm kiếm nhanh trong Vault (Lightweight Agentic RAG)"
+    )
+    query_parser.add_argument("keyword", help="Keyword/câu hỏi cần tìm")
+    query_parser.add_argument(
+        "--project", default=None,
+        help="Filter theo project (vd: shadow-scribe, z-zero). Bỏ trống = tất cả."
+    )
+    query_parser.add_argument(
+        "--top", type=int, default=5, metavar="N",
+        help="Số kết quả tối đa (default: 5)"
+    )
+    query_parser.add_argument(
+        "--smart", action="store_true",
+        help="Force Stage 2 LLM rerank (skip grep, đi thẳng Gemini)"
+    )
+
     args = parser.parse_args()
 
     if args.command == "scribe":
@@ -47,6 +66,11 @@ def main() -> None:
         cmd_audit(plan_path_arg=args.plan)
     elif args.command == "digest":
         cmd_digest(project_filter=args.project, last_days=args.last)
+    elif args.command == "query":
+        cmd_query(
+            keyword=args.keyword, project=args.project,
+            top=args.top, smart=args.smart,
+        )
     else:
         parser.print_help()
 
