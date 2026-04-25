@@ -44,7 +44,11 @@ def get_gemini_api_key() -> str:
 
 
 def get_gemini_model() -> str:
-    return os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    # ADR-005: Enforce gemini-2.5-flash, bypass leaked GEMINI_MODEL from system/IDE
+    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    if model == "gemini-3.1-pro":
+        return "gemini-2.5-flash"
+    return "gemini-2.5-flash"
 
 
 # ─── Version ──────────────────────────────────────────────────────────────────
