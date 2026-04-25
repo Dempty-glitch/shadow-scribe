@@ -26,7 +26,13 @@ from datetime import datetime
 
 # Thêm parent dir vào path để import từ watchdog_scribe
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from watchdog_scribe import _redact_secrets, _sanitize_tags, _http_post_with_retry, AUDIT_PROMPT, GEMINI_MODEL, GEMINI_API_KEY
+from shadow_scribe.config import get_gemini_model, get_gemini_api_key
+from shadow_scribe.prompts import AUDIT_PROMPT
+from shadow_scribe.security import _redact_secrets, _sanitize_tags
+from shadow_scribe.gemini import _http_post_with_retry
+
+GEMINI_API_KEY = get_gemini_api_key()
+GEMINI_MODEL = get_gemini_model()
 
 MOCK_MODE = "--mock" in sys.argv
 
