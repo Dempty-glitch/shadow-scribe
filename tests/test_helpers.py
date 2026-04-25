@@ -78,6 +78,14 @@ def test_parse_output_json():
     assert log == "# Log"
     assert row == "| index |"
 
+def test_parse_output_fence():
+    import json
+    raw_json = json.dumps({"session_log": "# Log", "index_row": "| index |"})
+    raw = f"```json\n{raw_json}\n```"
+    log, row = parse_output(raw)
+    assert log == "# Log"
+    assert row == "| index |"
+
 def test_parse_output_separator():
     raw = "# Session Log\n===INDEX===\n| index |"
     log, row = parse_output(raw)
