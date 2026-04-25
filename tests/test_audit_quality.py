@@ -39,11 +39,11 @@ MOCK_MODE = "--mock" in sys.argv
 # ─── TEST DATA ────────────────────────────────────────────────────────────────
 
 # Dùng session log thật — đây là bằng chứng "đã ship thành công"
-VAULT = Path.home() / "Documents" / "agent_vault"
+FIXTURES_DIR = Path(__file__).parent / "fixtures" / "known_good"
 KNOWN_GOOD_SESSIONS = [
-    VAULT / "sessions/2026-04/23_04_26.md",    # v1.2.0 Bulletproof Scribe
-    VAULT / "sessions/2026-04/14_04_26_2.md",  # Phase 3.1 Dual-Tier Audit
-    VAULT / "sessions/2026-04/14_04_26_3.md",  # Phase 3.2 digest
+    FIXTURES_DIR / "23_04_26.md",    # v1.2.0 Bulletproof Scribe
+    FIXTURES_DIR / "14_04_26_2.md",  # Phase 3.1 Dual-Tier Audit
+    FIXTURES_DIR / "14_04_26_3.md",  # Phase 3.2 digest
 ]
 
 _IN_P13_SESSION_TEST = False  # Flag để mock biết đang trong known-good test
@@ -184,11 +184,7 @@ def test_p13_known_good_sessions():
             print(f"    Response: {response[:200]}")
         results.append(not fp)
 
-    if not results:
-        print("\n  ⚠️  SKIP — Không tìm thấy session logs thật (CI mode?)")
-        return 1.0
-
-    pass_rate = sum(results) / len(results)
+    pass_rate = sum(results) / len(results) if results else 0
     print(f"\n  Pass rate: {sum(results)}/{len(results)} ({pass_rate:.0%})")
     assert pass_rate >= 0.9, f"❌ FALSE POSITIVE RATE QUÁ CAO: {pass_rate:.0%} < 90%"
     return pass_rate
