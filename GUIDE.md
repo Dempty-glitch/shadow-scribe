@@ -1,8 +1,8 @@
-# 🛡️ Shadow Scribe — Operations Manual (v1.3.0)
+# 🛡️ Shadow Scribe — Sổ tay Vận hành (v1.3.1)
 
 > This file is the **sole operations guide** for AI Agents.
 > If you are an IDE Agent (Antigravity, Cursor, Windsurf, Claude Code), read this entire file before taking action.
-> Detailed documentation: `~/Documents/shadow scribe/README.md`
+> Detailed documentation: see `README.md` in this repo.
 
 ---
 
@@ -14,7 +14,7 @@ Watchdog   = BRAIN         — reads, analyzes, synthesizes (powered by Gemini F
 ```
 
 ⛔ Agent **NEVER** reads logs/conversations and summarizes on its own — that's Watchdog's job.
-Watchdog script: `~/Documents/shadow scribe/watchdog_scribe.py`
+Watchdog script: runs via `watchdog` alias (created by `setup.sh`)
 API Key: auto-loaded from `~/Documents/agent_vault/.env`.
   *(⚠️ Must use official API. Never use leaked/proxy API keys to avoid exposing source code/secrets)*
 
@@ -43,15 +43,19 @@ API Key: auto-loaded from `~/Documents/agent_vault/.env`.
 
 ---
 
-## 🗺️ Workspace → Project Mapping
+## 🗺️ Mapping Workspace → Project
 
+Rules for mapping code folder names (workspace) → project names in vault:
+- Project names use **kebab-case**, no spaces.
+- Multiple workspaces can map to the same project.
+
+**Examples:**
 | Workspace (code folder name) | Project (vault name) |
-|-------------------------------|----------------------|
-| `shadow-prominence`, `shadow scribe` | `shadow-scribe` |
-| `ai-card-mcp`, `z-zero-dashboard`, `z-zero-mcp` | `z-zero` |
-| `kya-network`, `kya-mcp-server` | `kya-network` |
+|------------------------------|---------------------------|
+| `my-app`, `my-app-v2` | `my-app` |
+| `api-server`, `api-dashboard` | `api-server` |
 
-> If workspace is not in the table → create a new project name using kebab-case, no spaces.
+> If workspace has no matching project → create a new name in kebab-case.
 
 ---
 
@@ -123,7 +127,7 @@ Time: {HH:MM} - {HH:MM}
 
 **Step 3:** Automatically invoke Watchdog (no user action needed):
 ```bash
-python3 ~/Documents/shadow\ scribe/watchdog_scribe.py scribe
+watchdog scribe
 ```
 
 **Step 4:** Report results to user:
@@ -150,8 +154,7 @@ python3 ~/Documents/shadow\ scribe/watchdog_scribe.py scribe
 | `watchdog query <keyword> --project NAME` | Filter results by project | 🟢 READ |
 | `watchdog query <keyword> --smart` | Force Stage 2 Gemini even if Stage 1 has results | 🟢 READ |
 
-> Actual terminal command:
-> `python3 ~/Documents/shadow\ scribe/watchdog_scribe.py {command} [flags]`
+> The `watchdog` alias is created automatically by `setup.sh`. If missing, re-run `setup.sh`.
 
 ---
 

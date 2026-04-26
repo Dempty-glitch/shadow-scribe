@@ -6,7 +6,7 @@
 
 set -e
 
-VAULT_DIR="$HOME/Documents/agent_vault"
+VAULT_DIR="${SHADOW_SCRIBE_VAULT_DIR:-$HOME/Documents/agent_vault}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo ""

@@ -38,3 +38,4 @@ trash/
 
 # Screenshot placeholders (user adds real ones)
 # docs/ is tracked but keep empty screenshots out
+tmp_dl/

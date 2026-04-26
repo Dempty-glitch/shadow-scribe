@@ -5,6 +5,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.3.2] — 2026-04-26
+
+### Fixed
+- `GEMINI_MODEL` env var was silently ignored — function always returned `gemini-2.5-flash` regardless of ENV. Now uses allowlist: `{gemini-2.5-flash, gemini-2.5-pro}`, rejects unknown values.
+- `VAULT_DIR` was not configurable despite README claim — added `SHADOW_SCRIBE_VAULT_DIR` env override (shell-level only, cannot be set via `.env` due to chicken-and-egg).
+- `pytest tests/` failed 4 tests due to live Gemini API calls without key — added `@requires_gemini` skip marker. Result: `51 passed, 4 skipped` (was `42 passed, 4 failed`).
+- `gemini.py` API key error message told users to `export GEMINI_API_KEY` — corrected to point to `~/Documents/agent_vault/.env`.
+- CI workflow cherry-picked specific test files, masking failures — now runs `pytest tests/ -v`.
+
+### Added
+- `_resolve_vault_dir()` function in `config.py` — reads `SHADOW_SCRIBE_VAULT_DIR` from shell env.
+- `_ALLOWED_MODELS` allowlist constant in `config.py`.
+- `setup.sh` respects `SHADOW_SCRIBE_VAULT_DIR` env var.
+- 9 new unit tests: 4 for `_resolve_vault_dir`, 5 for `get_gemini_model` allowlist.
+
+### Changed
+- Version bump: `1.3.1` → `1.3.2`
+- README config table: `VAULT_DIR` → `SHADOW_SCRIBE_VAULT_DIR`, `GEMINI_MODEL` documents allowlist.
+
+---
+
 ## [1.3.1] — 2026-04-26
 
 ### Added

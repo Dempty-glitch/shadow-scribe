@@ -98,6 +98,17 @@
 
 ---
 
+### Phase 3.6 — i18n: ENV-Based Language Switch *(26/04/2026)*
+**Mục tiêu:** Cho phép user chọn output tiếng Việt hoặc tiếng Anh cho nội dung do Gemini tạo ra qua biến môi trường.
+
+- Biến môi trường `SHADOW_SCRIBE_LANG` (`vi` | `en`, mặc định `vi`)
+- Hàm `get_lang()` trong `config.py` với fallback an toàn
+- Prompt kép: `SYSTEM_PROMPT_VI/EN`, `AUDIT_PROMPT_VI/EN`, v.v.
+- Tích hợp language-aware trong `call_gemini`, `call_gemini_audit`, và `cmd_digest.py`
+- Tương thích ngược: mặc định `vi` không làm hỏng các file test và log cũ
+
+---
+
 ## 🔜 Kế hoạch
 
 ### Phase 4 — Telegram Integration *(Pending — đợi stability)*
@@ -148,6 +159,13 @@ Sequential Thinking MCP = Vỏ rỗng (server) + Hạt vàng (protocol)
 - ~30 dòng Python, tích hợp nguyên bản, không cần Node.js hay server riêng.
 
 **Tham khảo gốc:** [`modelcontextprotocol/sequentialthinking`](https://github.com/modelcontextprotocol/servers/blob/main/src/sequentialthinking/README.md) — *Protocol adopted, server discarded.*
+
+---
+
+### Phase 7 — PyPI Package & Custom IDE Skills *(DROPPED)*
+**Status:** ❌ Dropped — Xung đột với triết lý **Agent-Native**.
+- **PyPI:** AI Agent hoàn toàn có khả năng tự `git clone` và chạy `setup.sh`. Việc đưa lên PyPI tự rước thêm Tech Debt (quản lý version, build wheel, dependency) của phần mềm truyền thống mà không mang lại giá trị vận hành thực tế cho Agent.
+- **Custom Skills (`.claude/commands/`):** Bắt user phải nhớ cú pháp cứng nhắc (kiểu `/dump`, `/adr`). Giá trị thực sự của NLP là user chỉ cần "vibe" (ví dụ: "dump giúp mình nhé", "adr cái vừa xong đi") — Agent sẽ tự đọc `GUIDE.md` và ánh xạ ý định thành hành động chuẩn xác. Không cần hardcode skill.
 
 ---
 
@@ -207,6 +225,8 @@ watchdog query "thanh toán stripe"
 | 3.4 | Security Hardening (Redact, Escape, Atomic, Retry) | ✅ Done | 1.2.1 |
 | 3.5 | Package Refactor, CI/CD, JSON Parser | ✅ Done | 1.2.2 |
 | 6 | Lightweight Agentic RAG (`watchdog query`) | ✅ Done | 1.3.0 |
+| 3.6 | i18n: ENV-Based Language Switch | ✅ Done | 1.3.1 |
 | 4 | Telegram Integration | ⏸ Pending | — |
 | 5 | ~~Internal Monologue~~ | ❌ Dropped (skill layer, ngoài scope) | — |
+| 7 | ~~PyPI & Custom Skills~~ | ❌ Dropped (Triết lý Agent-Native) | — |
 
