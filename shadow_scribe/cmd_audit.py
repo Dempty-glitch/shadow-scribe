@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from shadow_scribe.gemini import call_gemini_audit
-from shadow_scribe.prompts import AUDIT_PROMPT
+
 from shadow_scribe.security import _filter_diff
 
 
@@ -75,7 +75,7 @@ def cmd_audit(plan_path_arg: str = "") -> None:
         print("⚠️  No Plan found. Auditing git diff only (Soft Audit).")
 
     # 3. Call Gemini
-    answer = call_gemini_audit(diff, plan, AUDIT_PROMPT)
+    answer = call_gemini_audit(diff, plan)
 
     # 4. Print results — READ-ONLY
     print("\n" + "═" * 60)

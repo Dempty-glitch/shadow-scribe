@@ -219,7 +219,8 @@ git show HEAD > ~/Documents/agent_vault/raw_logs/{project-name}/git_diff.txt
 | Biến | Mặc định | Mô tả |
 |------|----------|-------|
 | `GEMINI_API_KEY` | *(required)* | Google AI API Key — [lấy miễn phí tại đây](https://aistudio.google.com/). Lưu tại `~/Documents/agent_vault/.env` |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Model dùng cho scribe + audit + digest |
+| `SHADOW_SCRIBE_LANG` | `vi` | Ngôn ngữ output của Gemini (`vi` hoặc `en`). Áp dụng cho session logs, audit, digest, và query. |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Model dùng cho scribe + audit + digest + query |
 | `VAULT_DIR` | `~/Documents/agent_vault/` | Root của vault |
 
 > 💡 **Mẹo:** Bạn không cần export biến môi trường. Watchdog sẽ tự đọc file `~/Documents/agent_vault/.env`.

@@ -8,8 +8,13 @@ import urllib.error
 import urllib.request
 
 
-from shadow_scribe.config import get_gemini_api_key, get_gemini_model
-from shadow_scribe.prompts import QUERY_PROMPT, SYSTEM_PROMPT
+from shadow_scribe.config import get_gemini_api_key, get_gemini_model, get_lang
+from shadow_scribe.prompts import (
+    SYSTEM_PROMPT_VI, SYSTEM_PROMPT_EN,
+    HARD_AUDIT_INSTRUCTION_VI, HARD_AUDIT_INSTRUCTION_EN,
+    AUDIT_PROMPT_VI, AUDIT_PROMPT_EN,
+    QUERY_PROMPT_VI, QUERY_PROMPT_EN
+)
 from shadow_scribe.security import _redact_secrets, _sanitize_tags
 
 
@@ -106,6 +111,10 @@ def call_gemini(brief: str, diff: str, plan: str = "") -> str:
     """Call Gemini HTTP API directly (bypasses SDK) to avoid Python namespace errors."""
     api_key = get_gemini_api_key()
     model = get_gemini_model()
+    lang = get_lang()
+    
+    system_prompt = SYSTEM_PROMPT_EN if lang == "en" else SYSTEM_PROMPT_VI
+    hard_audit_instruction = HARD_AUDIT_INSTRUCTION_EN if lang == "en" else HARD_AUDIT_INSTRUCTION_VI
 
     if not api_key:
         print("❌ GEMINI_API_KEY is not set. Export the environment variable first:")
@@ -123,18 +132,13 @@ def call_gemini(brief: str, diff: str, plan: str = "") -> str:
         print("🔍 Activated [Hard Audit] - Loading Implementation Plan into verification memory.")
         safe_plan = _sanitize_tags(_redact_secrets(plan))
         user_message += f"\n\n<PLAN>\n{safe_plan}\n</PLAN>"
-        user_message += (
-            "\n\n⚠️ BẮT BUỘC ĐỐI CHIẾU HARD AUDIT: Hãy so sánh <SESSION_BRIEF> và <GIT_DIFF> với <PLAN> ban đầu. "
-            "Nếu Agent làm khác Plan (thêm bớt files, sửa sai logic, đổi tech stack v.v...) mà KHÔNG CÓ giải thích "
-            "hợp lý trong mục PIVOTS & DEAD ENDS, hãy đánh dấu 🔴 RISK CAO: LỆCH HƯỚNG LOGIC (Goal Drift) và giải thích "
-            "sự mâu thuẫn vào mục Risks của log báo cáo."
-        )
+        user_message += hard_audit_instruction
     else:
         print("🔍 Activated [Soft Audit] - No Plan found.")
 
     payload = {
         "system_instruction": {
-            "parts": [{"text": SYSTEM_PROMPT}]
+            "parts": [{"text": system_prompt}]
         },
         "contents": [
             {
@@ -152,10 +156,13 @@ def call_gemini(brief: str, diff: str, plan: str = "") -> str:
     return result["candidates"][0]["content"]["parts"][0]["text"]
 
 
-def call_gemini_audit(diff: str, plan: str, audit_prompt: str) -> str:
+def call_gemini_audit(diff: str, plan: str) -> str:
     """Call Gemini with AUDIT_PROMPT (read-only, no file writes)."""
     api_key = get_gemini_api_key()
     model = get_gemini_model()
+    lang = get_lang()
+    
+    audit_prompt = AUDIT_PROMPT_EN if lang == "en" else AUDIT_PROMPT_VI
 
     if not api_key:
         print("❌ GEMINI_API_KEY is not set.")
@@ -188,6 +195,9 @@ def call_gemini_query(keyword: str, index_content: str) -> str:
     """
     api_key = get_gemini_api_key()
     model = get_gemini_model()
+    lang = get_lang()
+    
+    query_prompt = QUERY_PROMPT_EN if lang == "en" else QUERY_PROMPT_VI
 
     if not api_key:
         print("❌ GEMINI_API_KEY is not set.")
@@ -204,7 +214,7 @@ def call_gemini_query(keyword: str, index_content: str) -> str:
     )
 
     payload = {
-        "system_instruction": {"parts": [{"text": QUERY_PROMPT}]},
+        "system_instruction": {"parts": [{"text": query_prompt}]},
         "contents": [{"parts": [{"text": user_msg}]}],
         "generationConfig": {"temperature": 0.1},
     }

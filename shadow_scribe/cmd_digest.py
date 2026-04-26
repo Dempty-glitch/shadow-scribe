@@ -9,10 +9,11 @@ from shadow_scribe.config import (
     VAULT_DIR,
     get_gemini_api_key,
     get_gemini_model,
+    get_lang,
 )
 from shadow_scribe.gemini import _http_post_with_retry
 from shadow_scribe.io_utils import _parse_project_from_log, _parse_session_date
-from shadow_scribe.prompts import DIGEST_PROMPT
+from shadow_scribe.prompts import DIGEST_PROMPT_EN, DIGEST_PROMPT_VI
 from shadow_scribe.security import _redact_secrets, _sanitize_tags
 
 DIGEST_SESSIONS_DIR = SESSIONS_DIR
@@ -117,12 +118,15 @@ def cmd_digest(project_filter: str = "", last_days: int = 0) -> None:
     # 5. Call Gemini
     api_key = get_gemini_api_key()
     model = get_gemini_model()
+    lang = get_lang()
 
     if not api_key:
         print("❌ GEMINI_API_KEY is not set.")
         sys.exit(1)
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+
+    digest_prompt = DIGEST_PROMPT_EN if lang == "en" else DIGEST_PROMPT_VI
 
     safe_combined = _sanitize_tags(_redact_secrets(combined))
     user_msg = (
@@ -133,7 +137,7 @@ def cmd_digest(project_filter: str = "", last_days: int = 0) -> None:
     )
 
     payload = {
-        "system_instruction": {"parts": [{"text": DIGEST_PROMPT}]},
+        "system_instruction": {"parts": [{"text": digest_prompt}]},
         "contents": [{"parts": [{"text": user_msg}]}],
         "generationConfig": {"temperature": 0.2},
     }

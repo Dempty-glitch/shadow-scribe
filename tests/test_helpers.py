@@ -117,3 +117,51 @@ def test_parse_session_date():
 def test_parse_session_date_bad():
     assert _parse_session_date("readme.md") is None
     assert _parse_session_date("invalid_format.md") is None
+
+# ─── config.py tests ──────────────────────────────────────────────────────────
+
+def test_get_lang_default_vi(monkeypatch):
+    """No env var → default 'vi'."""
+    monkeypatch.delenv("SHADOW_SCRIBE_LANG", raising=False)
+    from shadow_scribe.config import get_lang
+    assert get_lang() == "vi"
+
+def test_get_lang_explicit_en(monkeypatch):
+    """ENV=en → returns 'en'."""
+    monkeypatch.setenv("SHADOW_SCRIBE_LANG", "en")
+    from shadow_scribe.config import get_lang
+    assert get_lang() == "en"
+
+def test_get_lang_case_insensitive(monkeypatch):
+    """ENV=EN (uppercase) → returns 'en'."""
+    monkeypatch.setenv("SHADOW_SCRIBE_LANG", "EN")
+    from shadow_scribe.config import get_lang
+    assert get_lang() == "en"
+
+def test_get_lang_invalid_falls_back(monkeypatch, capsys):
+    """ENV=xyz → 'vi' + warning printed."""
+    monkeypatch.setenv("SHADOW_SCRIBE_LANG", "xyz")
+    from shadow_scribe.config import get_lang
+    assert get_lang() == "vi"
+    captured = capsys.readouterr()
+    assert "Invalid SHADOW_SCRIBE_LANG" in captured.out
+
+def test_call_gemini_uses_en_prompt_when_lang_en(monkeypatch):
+    """Smoke test: ENV=en → EN prompt sent in payload."""
+    import shadow_scribe.gemini as g
+    monkeypatch.setenv("SHADOW_SCRIBE_LANG", "en")
+    monkeypatch.setattr(g, "get_gemini_api_key", lambda: "fake-key")
+    
+    captured = {}
+    def fake_http(url, payload):
+        captured["payload"] = payload
+        return {"candidates": [{"content": {"parts": [{"text": '{"session_log":"x","index_row":"y"}'}]}}]}
+    monkeypatch.setattr(g, "_http_post_with_retry", fake_http)
+    
+    g.call_gemini("brief content", "diff content")
+    sent_prompt = captured["payload"]["system_instruction"]["parts"][0]["text"]
+    
+    # Assert EN prompt selected
+    assert "Mục tiêu" not in sent_prompt, "VN heading leaked into EN prompt"
+    # Assert at least one EN keyword present
+    assert any(kw in sent_prompt for kw in ["Objective", "Goal", "Decisions"]), "EN prompt missing expected headings"

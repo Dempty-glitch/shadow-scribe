@@ -41,7 +41,7 @@ Modern AI IDEs all suffer from the same two fatal diseases:
 - 🔍 **Lightweight Agentic RAG:** `watchdog query` searches the vault using 2-stage retrieval — Stage 1 grep (fast, free) → Stage 2 Gemini semantic rerank (smart fallback).
 - 🛡️ **Bulletproof I/O:** File overwrite protection, auto-truncation at 900K chars, `git diff HEAD~1` fallback if no staged changes.
 
-> ⚠️ **Note:** Session logs are currently generated in Vietnamese (the underlying Gemini prompts are VN-native). Locale-aware prompts are planned for v1.4.0.
+> 💡 **Bilingual:** Session logs default to Vietnamese. Set `SHADOW_SCRIBE_LANG=en` in `~/Documents/agent_vault/.env` to switch to English. (Existing logs are not auto-translated.)
 
 ---
 
@@ -227,6 +227,7 @@ git show HEAD > ~/Documents/agent_vault/raw_logs/{project-name}/git_diff.txt
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GEMINI_API_KEY` | *(required)* | Google AI API Key — [get free here](https://aistudio.google.com/). Stored at `~/Documents/agent_vault/.env` |
+| `SHADOW_SCRIBE_LANG` | `vi` | Language for Gemini-generated content (`vi` or `en`). Affects session logs, audit reports, digests, and query rerank. |
 | `GEMINI_MODEL` | `gemini-2.5-flash` | Model used for scribe + audit + digest + query |
 | `VAULT_DIR` | `~/Documents/agent_vault/` | Vault root directory |
 

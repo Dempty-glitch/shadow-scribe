@@ -65,6 +65,28 @@ else
     echo "   ℹ️  .env already exists — skipping"
 fi
 
+echo ""
+echo "🌐 Choose language for session logs (Gemini output):"
+echo "   vi = Tiếng Việt (default)"
+echo "   en = English"
+read -p "   Language [vi]: " LANG_CHOICE
+LANG_CHOICE=${LANG_CHOICE:-vi}
+
+# Validate
+if [ "$LANG_CHOICE" != "vi" ] && [ "$LANG_CHOICE" != "en" ]; then
+    echo "   ⚠️  Invalid value '$LANG_CHOICE', defaulting to 'vi'"
+    LANG_CHOICE="vi"
+fi
+
+# Append (or update if exists)
+if grep -q "^SHADOW_SCRIBE_LANG=" "$ENV_FILE"; then
+    sed -i.bak "s/^SHADOW_SCRIBE_LANG=.*/SHADOW_SCRIBE_LANG=$LANG_CHOICE/" "$ENV_FILE"
+    rm -f "$ENV_FILE.bak"
+else
+    echo "SHADOW_SCRIBE_LANG=$LANG_CHOICE" >> "$ENV_FILE"
+fi
+echo "   ✅ Language set to: $LANG_CHOICE"
+
 # ── Step 4: Copy GUIDE.md into vault ─────────────────────
 GUIDE_SRC="$SCRIPT_DIR/GUIDE.md"
 GUIDE_DEST="$VAULT_DIR/GUIDE.md"

@@ -51,6 +51,18 @@ def get_gemini_model() -> str:
     return "gemini-2.5-flash"
 
 
+def get_lang() -> str:
+    """Read SHADOW_SCRIBE_LANG env var. Returns 'vi' (default) or 'en'.
+    
+    Invalid values silently fall back to 'vi' with a warning.
+    """
+    lang = os.environ.get("SHADOW_SCRIBE_LANG", "vi").lower()
+    if lang not in ("vi", "en"):
+        print(f"⚠️  Invalid SHADOW_SCRIBE_LANG='{lang}'. Falling back to 'vi'.")
+        return "vi"
+    return lang
+
+
 # ─── Version ──────────────────────────────────────────────────────────────────
 
 VERSION = "1.3.0"
