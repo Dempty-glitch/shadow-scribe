@@ -4,6 +4,10 @@
 
 > **The Execution Brain & Shadow Scribe Architecture.**  
 > A perpetual Knowledge Management, Monitoring, and Audit system for AI Agents (Cursor, Windsurf, Claude Code, Antigravity).
+>
+> *Memory for Agents. Agents for Coding. Coding for Vibes.*
+>
+> **Software for agents, not for humans.** A B2A2H architecture — infrastructure serves agents, agents serve humans.
 
 [![Version](https://img.shields.io/badge/version-1.3.2-blue.svg)]()
 [![CI](https://github.com/Dempty-glitch/shadow-scribe/actions/workflows/ci.yml/badge.svg)](https://github.com/Dempty-glitch/shadow-scribe/actions/workflows/ci.yml)

@@ -2,6 +2,10 @@
 
 > **The Execution Brain & Shadow Scribe Architecture.**  
 > Hệ thống Quản trị Tri thức, Giám sát và Kiểm toán (Audit) vĩnh cửu dành cho AI Agents (Cursor, Windsurf, Claude Code, Antigravity).
+>
+> *Memory for Agents. Agents for Coding. Coding for Vibes.*
+>
+> **Phần mềm cho agent, không phải cho người.** Kiến trúc B2A2H — hạ tầng phục vụ agent, agent phục vụ con người.
 
 [![Version](https://img.shields.io/badge/version-1.3.2-blue.svg)]()
 [![CI](https://github.com/Dempty-glitch/shadow-scribe/actions/workflows/ci.yml/badge.svg)](https://github.com/Dempty-glitch/shadow-scribe/actions/workflows/ci.yml)
