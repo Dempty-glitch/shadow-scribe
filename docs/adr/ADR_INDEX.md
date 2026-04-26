@@ -11,3 +11,5 @@
 | 005 | Refactor Monolith → Package + CI + JSON Parser (v1.2.2) | 25/04/2026 | 🟢 ACCEPTED | [→](005_refactor_package_ci_json.md) |
 | 006 | Phase 6 — Lightweight Agentic RAG (Architecture) | 25/04/2026 | ✅ IMPLEMENTED | [→](006_phase6_lightweight_agentic_rag.md) |
 | 007 | Phase 6 Implementation — Parent-Child Retrieval + Sparse-LLM Hybrid Reranking | 25/04/2026 | ✅ IMPLEMENTED | [→](007_phase6_parent_child_hybrid_reranking.md) |
+| 008 | Agent-Native Philosophy — Drop PyPI & Custom Skills | 26/04/2026 | 🟢 ACCEPTED | [→](008_agent_native_philosophy.md) |
+| 009 | Dual-State Crystal Architecture (INTENT + CRYSTAL + INDEX) | 27/04/2026 | 🟢 ACCEPTED | [→](009_dual_state_crystal_architecture.md) |
