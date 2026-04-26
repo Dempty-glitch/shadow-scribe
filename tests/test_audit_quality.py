@@ -125,7 +125,7 @@ def call_audit_api(diff: str, plan: str, force_on_track: bool = False) -> str:
         return mock_gemini_on_track()
 
     if not GEMINI_API_KEY:
-        print("❌ GEMINI_API_KEY chưa set. Dùng --mock hoặc set .env")
+        print("❌ GEMINI_API_KEY is not set. Use --mock or set .env")
         sys.exit(1)
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"

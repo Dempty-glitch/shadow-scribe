@@ -1,10 +1,10 @@
 """shadow_scribe.cmd_query — `watchdog query` (Phase 6 Lightweight Agentic RAG).
 
-Implementation theo ADR-006 + ADR-007:
-- Stage 1: Sparse grep trên INDEX_MATRIX (cheap-fast, ~50ms local)
-- Stage 2: Gemini LLM rerank (smart-fallback) khi grep mơ hồ hoặc quá nhiều hit
+Implementation per ADR-006 + ADR-007:
+- Stage 1: Sparse grep on INDEX_MATRIX (cheap-fast, ~50ms local)
+- Stage 2: Gemini LLM rerank (smart-fallback) when grep is vague or too many hits
 - Parent-Child Retrieval: child=INDEX row, parent=session log, grandparent=ADR
-- Output: ASCII table (Date | Project | TL;DR | Link), KHÔNG dump nội dung file
+- Output: ASCII table (Date | Project | TL;DR | Link), does NOT dump file contents
 """
 
 import sys
@@ -20,7 +20,7 @@ PROJECT_MAX = 18
 
 
 class IndexRow(NamedTuple):
-    """1 row trong INDEX_MATRIX (master index, 7 columns)."""
+    """One row from INDEX_MATRIX (master index, 7 columns)."""
     date: str
     project: str
     workspace: str
@@ -34,8 +34,8 @@ class IndexRow(NamedTuple):
 def _parse_index_rows(content: str) -> list[IndexRow]:
     """Parse INDEX_MATRIX.md → list of IndexRow.
 
-    Format: | Ngày | Project | Workspace | TL;DR | Session | Artifacts | Tags |
-    Skip header, separator, và non-master rows (vd: bảng ADR phụ có 5 cột).
+    Format: | Date | Project | Workspace | TL;DR | Session | Artifacts | Tags |
+    Skips header, separator, and non-master rows (e.g., ADR sub-tables with 5 columns).
     """
     rows: list[IndexRow] = []
     for raw_line in content.splitlines():
@@ -81,9 +81,9 @@ def _truncate(text: str, max_len: int) -> str:
 
 
 def _render_table(hits: list[IndexRow], top_n: int) -> str:
-    """ASCII table: Date | Project | TL;DR | Link. Cap kết quả tại top_n."""
+    """ASCII table: Date | Project | TL;DR | Link. Caps results at top_n."""
     if not hits:
-        return "(không có kết quả)"
+        return "(no results found)"
 
     rows_to_show = hits[:top_n]
     date_w = 5
@@ -135,12 +135,12 @@ def cmd_query(
     top: int = TOP_N_DEFAULT,
     smart: bool = False,
 ) -> None:
-    """Lightweight Agentic RAG query trên Vault INDEX_MATRIX.
+    """Lightweight Agentic RAG query on Vault INDEX_MATRIX.
 
     Stage 2 trigger: smart=True OR hits<2 OR hits>top.
     """
     if not INDEX_FILE.exists():
-        print(f"❌ Không tìm thấy Index Matrix tại {INDEX_FILE}")
+        print(f"❌ Index Matrix not found at {INDEX_FILE}")
         sys.exit(1)
 
     print("\n" + "═" * 60)
@@ -156,7 +156,7 @@ def cmd_query(
     rows = _parse_index_rows(content)
 
     if not rows:
-        print("⚠️  INDEX_MATRIX rỗng hoặc format không hợp lệ")
+        print("⚠️  INDEX_MATRIX is empty or has invalid format")
         sys.exit(1)
 
     hits = _filter_rows(rows, keyword, project)
@@ -172,14 +172,14 @@ def cmd_query(
     if smart:
         reason = "--smart flag (force)"
     elif len(hits) < 2:
-        reason = f"grep < 2 hits ({len(hits)} found, có thể keyword mơ hồ)"
+        reason = f"grep < 2 hits ({len(hits)} found, keyword may be too vague)"
     else:
-        reason = f"grep > top={top} ({len(hits)} found, cần rerank)"
+        reason = f"grep > top={top} ({len(hits)} found, needs reranking)"
     print(f"🧠 Stage 2 trigger: {reason}")
 
     rerank_raw = call_gemini_query(keyword, content).strip()
     if not rerank_raw:
-        print("\n(Stage 2: Gemini không trả kết quả relevant)")
+        print("\n(Stage 2: Gemini returned no relevant results)")
         if hits:
             print("\n💡 Fallback Stage 1:")
             print(_render_table(hits, top))
@@ -194,7 +194,7 @@ def cmd_query(
         print(f"\n💡 Stage 2 reranked: {len(reranked)} result(s)")
         print(_render_table(reranked, top))
     else:
-        print("\n💡 Stage 2 raw (parser không tách được rows):")
+        print("\n💡 Stage 2 raw (parser could not extract rows):")
         print(rerank_raw[:500])
 
     print("═" * 60)

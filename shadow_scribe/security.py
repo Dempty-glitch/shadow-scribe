@@ -20,14 +20,14 @@ _SECRET_PATTERNS = [
 
 
 def _redact_secrets(text: str) -> str:
-    """Mask secrets/credentials trước khi gửi lên API."""
+    """Mask secrets/credentials before sending to API."""
     redacted = text
     count = 0
     for pattern, replacement in _SECRET_PATTERNS:
         redacted, n = re.subn(pattern, replacement, redacted)
         count += n
     if count:
-        print(f"🔒 Đã redact {count} secret(s) trước khi gửi API")
+        print(f"🔒 Redacted {count} secret(s) before sending to API")
     return redacted
 
 
@@ -37,7 +37,7 @@ _PROMPT_TAGS = ["SESSION_BRIEF", "GIT_DIFF", "PLAN", "SESSION_LOGS", "INDEX_MATR
 
 
 def _sanitize_tags(text: str) -> str:
-    """Escape XML-like tags trong content để chống prompt injection."""
+    """Escape XML-like tags in content to prevent prompt injection."""
     sanitized = text
     for tag in _PROMPT_TAGS:
         sanitized = sanitized.replace(f"<{tag}>", f"＜{tag}＞")
@@ -55,8 +55,8 @@ _DIFF_NOISE_FILES = {
 
 
 def _filter_diff(diff_text: str) -> str:
-    """Loại bỏ diff chunks từ các file noise (lockfiles, binary, etc.)."""
-    if not diff_text or diff_text == "(Không có dữ liệu)":
+    """Remove diff chunks from noise files (lockfiles, binary, etc.)."""
+    if not diff_text or diff_text == "(No data available)":
         return diff_text
 
     filtered_chunks = []
@@ -81,5 +81,5 @@ def _filter_diff(diff_text: str) -> str:
     result = "\n".join(filtered_chunks)
     removed = len(diff_text) - len(result)
     if removed > 100:
-        print(f"🧹 Đã lọc {removed:,} chars noise từ git diff")
+        print(f"🧹 Filtered {removed:,} chars of noise from git diff")
     return result

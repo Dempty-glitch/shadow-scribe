@@ -13,23 +13,23 @@ from typing import Optional
 # ─── File reading ─────────────────────────────────────────────────────────────
 
 def read_file(path: Path, label: str, required: bool = True) -> str:
-    """Đọc file và trả về nội dung, hoặc exit nếu required và không tồn tại."""
+    """Read file and return contents, or exit if required and missing."""
     if not path.exists():
         if required:
-            print(f"❌ LỖI: File bắt buộc không tồn tại: {path}")
+            print(f"❌ ERROR: Required file does not exist: {path}")
             sys.exit(1)
         else:
-            print(f"⚠️  Không tìm thấy {label}: {path.name} (Bỏ qua)")
-            return "(Không có dữ liệu)"
+            print(f"⚠️  {label} not found: {path.name} (Skipping)")
+            return "(No data available)"
     content = path.read_text(encoding="utf-8")
-    print(f"✅ Đọc {label}: {path.name} ({len(content)} chars)")
+    print(f"✅ Read {label}: {path.name} ({len(content)} chars)")
     return content
 
 
 # ─── Atomic index write ───────────────────────────────────────────────────────
 
 def _atomic_write_index(index_path: Path, new_row: str) -> None:
-    """Ghi Index an toàn: file lock + atomic write."""
+    """Write Index safely: file lock + atomic write."""
     lock_path = index_path.parent / ".index.lock"
     with open(lock_path, "w") as lock_fd:
         fcntl.flock(lock_fd, fcntl.LOCK_EX)
@@ -59,7 +59,7 @@ def _atomic_write_index(index_path: Path, new_row: str) -> None:
 # ─── Session date & project parsing (used by cmd_digest) ─────────────────────
 
 def _parse_session_date(filename: str) -> Optional[datetime]:
-    """Parse date từ filename dạng DD_MM_YY.md hoặc DD_MM_YY_N.md."""
+    """Parse date from filename format DD_MM_YY.md or DD_MM_YY_N.md."""
     m = re.match(r"(\d{2})_(\d{2})_(\d{2})", filename)
     if not m:
         return None
@@ -71,7 +71,7 @@ def _parse_session_date(filename: str) -> Optional[datetime]:
 
 
 def _parse_project_from_log(content: str) -> str:
-    """Trích xuất Project từ header session log."""
+    """Extract Project from session log header."""
     m = re.search(r'\*\*Project:\*\*\s*`?([\w\-]+)`?', content)
     if m:
         return m.group(1).strip().lower()

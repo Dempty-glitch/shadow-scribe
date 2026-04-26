@@ -21,41 +21,41 @@ def main() -> None:
     )
     subparsers = parser.add_subparsers(dest="command")
 
-    # scribe (cuối ngày, destructive)
-    scribe_parser = subparsers.add_parser("scribe", help="Cuối ngày: ghi Session Log + cập nhật Index")
-    scribe_parser.add_argument("--mock", action="store_true", help="Dry-run với mock data")
+    # scribe (end-of-day, destructive)
+    scribe_parser = subparsers.add_parser("scribe", help="End-of-day: write Session Log + update Index")
+    scribe_parser.add_argument("--mock", action="store_true", help="Dry-run with mock data")
 
-    # audit (giữa giờ, read-only)
-    audit_parser = subparsers.add_parser("audit", help="Giữa giờ: soi goal drift (read-only)")
-    audit_parser.add_argument("--plan", default="", help="Đường dẫn tới file implementation_plan.md")
+    # audit (mid-session, read-only)
+    audit_parser = subparsers.add_parser("audit", help="Mid-session: check goal drift (read-only)")
+    audit_parser.add_argument("--plan", default="", help="Path to implementation_plan.md")
 
-    # digest (tổng hợp nhiều sessions, project-filtered)
-    digest_parser = subparsers.add_parser("digest", help="Tổng hợp digest theo project")
+    # digest (aggregate multiple sessions, project-filtered)
+    digest_parser = subparsers.add_parser("digest", help="Aggregate digest by project")
     digest_parser.add_argument(
         "--project", default="",
-        help="Filter theo project (vd: shadow-scribe, z-zero). Bỏ trống = tất cả."
+        help="Filter by project (e.g., shadow-scribe, z-zero). Empty = all."
     )
     digest_parser.add_argument(
         "--last", type=int, default=0, metavar="N",
-        help="Chỉ lấy sessions trong N ngày gần nhất (vd: --last 30). Bỏ trống = tất cả."
+        help="Only include sessions from the last N days (e.g., --last 30). Empty = all."
     )
 
     # query (Phase 6 — Lightweight Agentic RAG)
     query_parser = subparsers.add_parser(
-        "query", help="Tìm kiếm nhanh trong Vault (Lightweight Agentic RAG)"
+        "query", help="Quick search the Vault (Lightweight Agentic RAG)"
     )
-    query_parser.add_argument("keyword", help="Keyword/câu hỏi cần tìm")
+    query_parser.add_argument("keyword", help="Keyword or question to search")
     query_parser.add_argument(
         "--project", default=None,
-        help="Filter theo project (vd: shadow-scribe, z-zero). Bỏ trống = tất cả."
+        help="Filter by project (e.g., shadow-scribe, z-zero). Empty = all."
     )
     query_parser.add_argument(
         "--top", type=int, default=5, metavar="N",
-        help="Số kết quả tối đa (default: 5)"
+        help="Max number of results (default: 5)"
     )
     query_parser.add_argument(
         "--smart", action="store_true",
-        help="Force Stage 2 LLM rerank (skip grep, đi thẳng Gemini)"
+        help="Force Stage 2 LLM rerank (skip grep, go straight to Gemini)"
     )
 
     args = parser.parse_args()

@@ -10,20 +10,20 @@ from shadow_scribe.security import _filter_diff
 
 
 def cmd_audit(plan_path_arg: str = "") -> None:
-    """Audit git diff vs implementation plan. READ-ONLY — không ghi file."""
+    """Audit git diff vs implementation plan. READ-ONLY — does not write files."""
     cwd = Path.cwd()
     print("\n" + "═" * 60)
     print("🔍 SHADOW SCRIBE — Quick Audit")
     print(f"   CWD: {cwd}")
     print("═" * 60)
 
-    # 1. Lấy git diff từ CWD
+    # 1. Get git diff from CWD
     result = subprocess.run(
         ["git", "diff"],
         capture_output=True, text=True, cwd=str(cwd)
     )
     if result.returncode != 0:
-        print(f"❌ Không thể chạy git diff tại {cwd}")
+        print(f"❌ Cannot run git diff at {cwd}")
         print(f"   {result.stderr.strip()}")
         sys.exit(1)
 
@@ -35,14 +35,14 @@ def cmd_audit(plan_path_arg: str = "") -> None:
         )
         if result2.returncode == 0 and result2.stdout.strip():
             diff = result2.stdout.strip()
-            print("⚠️  Không có staged/unstaged changes. Dùng diff với HEAD~1.")
+            print("⚠️  No staged/unstaged changes. Using diff with HEAD~1.")
         else:
-            diff = "(Không có thay đổi nào)"
+            diff = "(No changes detected)"
 
     diff = _filter_diff(diff)
-    print(f"✅ Git diff: {len(diff)} chars từ [{cwd.name}]")
+    print(f"✅ Git diff: {len(diff)} chars from [{cwd.name}]")
 
-    # 2. Tìm implementation_plan.md
+    # 2. Find implementation_plan.md
     plan = ""
     plan_path = None
 
@@ -51,7 +51,7 @@ def cmd_audit(plan_path_arg: str = "") -> None:
         if p.exists():
             plan_path = p
         else:
-            print(f"⚠️  --plan '{plan_path_arg}' không tồn tại. Tự tìm kiếm...")
+            print(f"⚠️  --plan '{plan_path_arg}' does not exist. Searching automatically...")
 
     if not plan_path:
         brain_dir = Path.home() / ".gemini" / "antigravity" / "brain"
@@ -70,17 +70,17 @@ def cmd_audit(plan_path_arg: str = "") -> None:
     if plan_path:
         plan = plan_path.read_text(encoding="utf-8")
         print(f"✅ Implementation Plan: ...{str(plan_path)[-50:]} ({len(plan)} chars)")
-        print("🔍 Kích hoạt [Hard Audit]")
+        print("🔍 Activated [Hard Audit]")
     else:
-        print("⚠️  Không tìm thấy Plan. Chỉ audit git diff (Soft Audit).")
+        print("⚠️  No Plan found. Auditing git diff only (Soft Audit).")
 
-    # 3. Gọi Gemini
+    # 3. Call Gemini
     answer = call_gemini_audit(diff, plan, AUDIT_PROMPT)
 
-    # 4. In kết quả — READ-ONLY
+    # 4. Print results — READ-ONLY
     print("\n" + "═" * 60)
-    print("📊 Kết quả Audit:")
+    print("📊 Audit Result:")
     print("-" * 40)
     print(answer.strip())
     print("═" * 60)
-    print("🚨 READ-ONLY — Không ghi file, không chạm Index.\n")
+    print("🚨 READ-ONLY — No files written, Index untouched.\n")

@@ -16,7 +16,7 @@ ENV_FILE = VAULT_DIR / ".env"
 # ─── Env loader ───────────────────────────────────────────────────────────────
 
 def _load_env_file(env_path: Path) -> None:
-    """Đọc file .env đơn giản (KEY=VALUE), inject vào os.environ nếu chưa có."""
+    """Read simple .env file (KEY=VALUE), inject into os.environ if not already set."""
     if not env_path.exists():
         return
     for line in env_path.read_text(encoding="utf-8").splitlines():
@@ -27,13 +27,13 @@ def _load_env_file(env_path: Path) -> None:
             continue
         key, _, value = line.partition("=")
         key = key.strip()
-        value = value.strip().strip('"').strip("'")  # Bỏ quotes nếu có
-        if key and key not in os.environ:  # Không ghi đè env var đã có
+        value = value.strip().strip('"').strip("'")  # Strip quotes if present
+        if key and key not in os.environ:  # Don't overwrite existing env vars
             os.environ[key] = value
 
 
 def load_env() -> None:
-    """Public entry point — gọi explicit từ entry point, không side-effect khi import."""
+    """Public entry point — called explicitly from entry point, no side-effects on import."""
     _load_env_file(ENV_FILE)
 
 

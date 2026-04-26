@@ -20,19 +20,19 @@ DIGESTS_OUTPUT_DIR = VAULT_DIR / "digests"
 
 
 def cmd_digest(project_filter: str = "", last_days: int = 0) -> None:
-    """Tổng hợp N session logs thành 1 digest cho project."""
+    """Aggregate N session logs into 1 digest per project."""
     print("\n" + "═" * 60)
     print("📊 SHADOW SCRIBE — Digest Engine")
     if project_filter:
         print(f"   Filter: project={project_filter}")
     if last_days:
-        print(f"   Filter: last {last_days} ngày")
+        print(f"   Filter: last {last_days} days")
     print("═" * 60)
 
-    # 1. Thu thập tất cả session files
+    # 1. Collect all session files
     all_session_files: list[tuple[datetime, Path]] = []
     if not DIGEST_SESSIONS_DIR.exists():
-        print(f"❌ Không tìm thấy sessions dir: {DIGEST_SESSIONS_DIR}")
+        print(f"❌ Sessions dir not found: {DIGEST_SESSIONS_DIR}")
         sys.exit(1)
 
     for month_dir in sorted(DIGEST_SESSIONS_DIR.iterdir()):
@@ -49,20 +49,20 @@ def cmd_digest(project_filter: str = "", last_days: int = 0) -> None:
     all_session_files.sort(key=lambda x: x[0])
 
     if not all_session_files:
-        print("⚠️  Không tìm thấy session nào trong vault.")
+        print("⚠️  No sessions found in vault.")
         sys.exit(0)
 
-    # 2. Filter theo --last
+    # 2. Filter by --last
     if last_days > 0:
         cutoff = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         cutoff -= timedelta(days=last_days)
         all_session_files = [(dt, f) for (dt, f) in all_session_files if dt >= cutoff]
 
     if not all_session_files:
-        print(f"⚠️  Không có session nào trong {last_days} ngày gần nhất.")
+        print(f"⚠️  No sessions found in the last {last_days} days.")
         sys.exit(0)
 
-    # 3. Đọc content + filter theo --project
+    # 3. Read content + filter by --project
     matched: list[tuple[datetime, Path, str]] = []
     skipped = 0
     for dt, f in all_session_files:
@@ -81,16 +81,16 @@ def cmd_digest(project_filter: str = "", last_days: int = 0) -> None:
         matched.append((dt, f, content))
 
     if not matched:
-        filter_info = f"project='{project_filter}'" if project_filter else "tất cả"
-        print(f"⚠️  Không tìm thấy session nào khớp với filter [{filter_info}].")
+        filter_info = f"project='{project_filter}'" if project_filter else "all"
+        print(f"⚠️  No sessions match filter [{filter_info}].")
         if skipped:
-            print(f"   (Đã bỏ qua {skipped} sessions không khớp)")
+            print(f"   (Skipped {skipped} non-matching sessions)")
         sys.exit(0)
 
-    print(f"✅ Tìm thấy {len(matched)} sessions phù hợp (bỏ qua {skipped})")
+    print(f"✅ Found {len(matched)} matching sessions (skipped {skipped})")
 
-    # 4. Ghép sessions, truncate nếu quá lớn
-    MAX_CHARS = 900_000  # ~900K chars để fit 1M context Gemini
+    # 4. Concatenate sessions, truncate if too large
+    MAX_CHARS = 900_000  # ~900K chars to fit Gemini 1M context
     parts = []
     total_chars = 0
     truncated_at = None
@@ -99,7 +99,7 @@ def cmd_digest(project_filter: str = "", last_days: int = 0) -> None:
         entry = f"---SESSION--- [{dt.strftime('%d/%m/%Y')}] {f.name}\n{content}"
         if total_chars + len(entry) > MAX_CHARS:
             truncated_at = i
-            print(f"⚠️  Đã truncate tại session {i+1}/{len(matched)} để fit context 1M Gemini.")
+            print(f"⚠️  Truncated at session {i+1}/{len(matched)} to fit Gemini 1M context.")
             break
         parts.append(entry)
         total_chars += len(entry)
@@ -114,12 +114,12 @@ def cmd_digest(project_filter: str = "", last_days: int = 0) -> None:
     print(f"   Date range: {date_range}")
     print(f"   Total chars: {total_chars:,}\n")
 
-    # 5. Gọi Gemini
+    # 5. Call Gemini
     api_key = get_gemini_api_key()
     model = get_gemini_model()
 
     if not api_key:
-        print("❌ GEMINI_API_KEY chưa set.")
+        print("❌ GEMINI_API_KEY is not set.")
         sys.exit(1)
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
@@ -138,18 +138,18 @@ def cmd_digest(project_filter: str = "", last_days: int = 0) -> None:
         "generationConfig": {"temperature": 0.2},
     }
 
-    print("🤖 Đang tổng hợp digest...")
+    print("🤖 Aggregating digest...")
     result_json = _http_post_with_retry(url, payload)
     digest_text = result_json["candidates"][0]["content"]["parts"][0]["text"].strip()
 
-    # 6. In ra terminal
+    # 6. Print to terminal
     print("\n" + "═" * 60)
     print("📊 DIGEST OUTPUT:")
     print("-" * 40)
     print(digest_text)
     print("═" * 60)
 
-    # 7. Ghi file
+    # 7. Write file
     DIGESTS_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     today_str = datetime.now().strftime("%Y-%m-%d")
     out_file = DIGESTS_OUTPUT_DIR / f"{proj_label}_{today_str}.md"
@@ -162,9 +162,9 @@ def cmd_digest(project_filter: str = "", last_days: int = 0) -> None:
     out_file.write_text(digest_text, encoding="utf-8")
 
     if truncated_at is not None:
-        note = f"\n\n---\n> ⚠️ Digest bị truncate: chỉ bao gồm {len(parts)}/{len(matched)} sessions đầu do giới hạn context."
+        note = f"\n\n---\n> ⚠️ Digest was truncated: only includes {len(parts)}/{len(matched)} initial sessions due to context limit."
         with out_file.open("a", encoding="utf-8") as fh:
             fh.write(note)
 
-    print(f"\n✅ Digest đã lưu: {out_file}")
+    print(f"\n✅ Digest saved: {out_file}")
     print()

@@ -128,7 +128,7 @@ def test_truncate_over_limit():
 
 
 def test_render_table_empty():
-    assert _render_table([], 5) == "(không có kết quả)"
+    assert _render_table([], 5) == "(no results found)"
 
 
 def test_render_table_format():
