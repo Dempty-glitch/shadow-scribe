@@ -1,7 +1,7 @@
 # 🗺️ Shadow Scribe — ROADMAP
 
 > Tài liệu này theo dõi **các phase đã hoàn thành** và **kế hoạch tương lai** của hệ thống.  
-> Project Index chi tiết hơn (timeline session + ADR): [`agent_vault/projects/shadow-scribe/PROJECT_INDEX.md`](../agent_vault/projects/shadow-scribe/PROJECT_INDEX.md)
+> ADR Index: [`docs/adr/ADR_INDEX.md`](docs/adr/ADR_INDEX.md)
 
 ---
 
@@ -15,7 +15,7 @@
 - Chụp `git diff` → `raw_logs/git_diff.txt`
 - **Nguyên tắc cốt lõi:** Gemini Flash làm heavy lifting, Anti dùng context window cho code
 
-**ADR liên quan:** [ADR-001 — Watchdog Architecture](../agent_vault/projects/shadow-scribe/adr/001_watchdog_architecture.md)
+**ADR liên quan:** [ADR-001 — Watchdog Architecture](docs/adr/001_watchdog_architecture.md)
 
 ---
 
@@ -40,7 +40,7 @@
 - Lấy `git diff` từ CWD (thư mục project), không phải vault
 
 **Bug đã fix:** UUID sort → mtime sort  
-**ADR liên quan:** [ADR-002 — Dual-Tier Audit](../agent_vault/projects/shadow-scribe/adr/002_dual_tier_audit.md)
+**ADR liên quan:** [ADR-002 — Dual-Tier Audit](docs/adr/002_dual_tier_audit.md)
 
 ---
 
@@ -66,7 +66,7 @@
 - Trash timestamp precision: giây → microsecond (`%f`)
 - `_filter_diff()` — Loại bỏ lockfiles, `.DS_Store` khỏi diff payload
 
-**Tham khảo:** [Audit Report](../agent_vault/artifacts/2026-04/shadow_scribe_audit_24_04_26.md) — Bản đánh giá kỹ thuật 10 vấn đề
+**Tham khảo:** Audit Report *(vault-only: `agent_vault/artifacts/2026-04/shadow_scribe_audit_24_04_26.md`)*
 
 ---
 
@@ -78,7 +78,7 @@
 - Cập nhật 14 unit tests cho security, gemini parser, path utils
 - Ép `response_mime_type: "application/json"` + 3-layer parser fallback
 
-**ADR liên quan:** [ADR-005 — Refactor Package CI JSON](../agent_vault/projects/shadow-scribe/adr/005_refactor_package_ci_json.md)
+**ADR liên quan:** [ADR-005 — Refactor Package CI JSON](docs/adr/005_refactor_package_ci_json.md)
 
 ---
 
@@ -93,8 +93,8 @@
 - 22 unit tests cover parser/filter/render/Stage 2 trigger logic
 
 **ADR liên quan:**
-- [ADR-006 — Lightweight Agentic RAG (Architecture)](../agent_vault/projects/shadow-scribe/adr/006_phase6_lightweight_agentic_rag.md)
-- [ADR-007 — Parent-Child + Sparse-LLM Hybrid Reranking (Implementation)](../agent_vault/projects/shadow-scribe/adr/007_phase6_parent_child_hybrid_reranking.md)
+- [ADR-006 — Lightweight Agentic RAG (Architecture)](docs/adr/006_phase6_lightweight_agentic_rag.md)
+- [ADR-007 — Parent-Child + Sparse-LLM Hybrid Reranking (Implementation)](docs/adr/007_phase6_parent_child_hybrid_reranking.md)
 
 ---
 
@@ -112,7 +112,7 @@
 - Bot cần reach máy local (SSH tunnel? ngrok? hay webhook?)
 - Bảo mật: không expose API key qua Telegram
 
-**Tham khảo:** [ADR-002, Cách 4 — Telegram bot](../agent_vault/projects/shadow-scribe/adr/002_dual_tier_audit.md)
+**Tham khảo:** [ADR-002, Cách 4 — Telegram bot](docs/adr/002_dual_tier_audit.md)
 
 ---
 

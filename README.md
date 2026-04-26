@@ -244,8 +244,7 @@ git show HEAD > ~/Documents/agent_vault/raw_logs/{project-name}/git_diff.txt
 ## 📚 Tài liệu liên quan
 
 - [ROADMAP.md](ROADMAP.md) — Chi tiết phases đã xong & kế hoạch
-- [Project Index](../agent_vault/projects/shadow-scribe/PROJECT_INDEX.md) — Timeline sessions
-- [ADR Index](../agent_vault/projects/shadow-scribe/adr/ADR_INDEX.md) — Quyết định kiến trúc (3 ADRs)
+- [ADR Index](docs/adr/ADR_INDEX.md) — Quyết định kiến trúc (7 ADRs)
 
 ---
 
