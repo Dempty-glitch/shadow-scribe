@@ -245,6 +245,7 @@ git show HEAD > ~/Documents/agent_vault/raw_logs/{project-name}/git_diff.txt
 - [x] **Phase 3.4:** Security Hardening — Secrets Redact, XML Escape, Atomic Write, HTTP Retry, Diff Filter (v1.2.1)
 - [x] **Phase 3.5:** Package Refactor, CI/CD Pipeline & 3-Layer JSON Parser (v1.2.2)
 - [x] **Phase 6:** `watchdog query` — Lightweight Agentic RAG (Parent-Child + Sparse-LLM Hybrid Reranking) (v1.3.0)
+- [x] **Phase 3.6:** i18n — ENV-based bilingual output (`SHADOW_SCRIBE_LANG=vi|en`) for all 4 modes (v1.3.1)
 - [ ] **Phase 4:** Telegram Bot integration — receive Goal Drift alerts on your phone. *(pending — awaiting stability)*
 - [ ] **Phase 5:** ~~Internal Monologue~~ → **dropped**: belongs in the skill layer (agent-side), not in Shadow Scribe (independent auditor).
 

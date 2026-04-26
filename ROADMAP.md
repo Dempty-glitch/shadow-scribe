@@ -100,6 +100,20 @@
 
 ---
 
+### Phase 3.6 — i18n: ENV-Based Language Switch *(26/04/2026)*
+**Goal:** Allow users to choose between Vietnamese and English output for all Gemini-generated content via a single environment variable.
+
+- `SHADOW_SCRIBE_LANG` ENV var (`vi` | `en`, default `vi`)
+- `get_lang()` in `config.py` with silent fallback + warning log
+- Dual prompt templates: `SYSTEM_PROMPT_VI/EN`, `AUDIT_PROMPT_VI/EN`, `DIGEST_PROMPT_VI/EN`, `QUERY_PROMPT_VI/EN`
+- Extracted `HARD_AUDIT_INSTRUCTION` into localizable constants
+- Language-aware injection in `call_gemini`, `call_gemini_audit`, `call_gemini_query`, and `cmd_digest.py`
+- `setup.sh` interactive language prompt during vault setup
+- 5 new unit tests for config + prompt injection logic
+- Backward-compatible: default `vi` preserves all existing fixtures
+
+---
+
 ## 🔜 Planned
 
 ### Phase 4 — Telegram Integration *(Pending — awaiting stability)*
@@ -134,5 +148,6 @@
 | 3.4 | Security Hardening (Redact, Escape, Atomic, Retry) | ✅ Done | 1.2.1 |
 | 3.5 | Package Refactor, CI/CD, JSON Parser | ✅ Done | 1.2.2 |
 | 6 | Lightweight Agentic RAG (`watchdog query`) | ✅ Done | 1.3.0 |
+| 3.6 | i18n: ENV-Based Language Switch | ✅ Done | 1.3.1 |
 | 4 | Telegram Integration | ⏸ Pending | — |
 | 5 | ~~Internal Monologue~~ | ❌ Dropped (skill layer, out of scope) | — |

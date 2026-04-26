@@ -237,6 +237,7 @@ git show HEAD > ~/Documents/agent_vault/raw_logs/{project-name}/git_diff.txt
 - [x] **Phase 3.4:** Security Hardening — Secrets Redact, XML Escape, Atomic Write, HTTP Retry, Diff Filter (v1.2.1)
 - [x] **Phase 3.5:** Package Refactor, CI/CD Pipeline & 3-Layer JSON Parser (v1.2.2)
 - [x] **Phase 6:** `watchdog query` — Lightweight Agentic RAG (Parent-Child + Sparse-LLM Hybrid Reranking) (v1.3.0)
+- [x] **Phase 3.6:** i18n — Chuyển đổi ngôn ngữ output qua ENV (`SHADOW_SCRIBE_LANG=vi|en`) cho cả 4 mode (v1.3.1)
 - [ ] **Phase 4:** Tích hợp Telegram Bot — nhận cảnh báo Goal Drift qua điện thoại. *(pending — đợi stability)*
 - [ ] **Phase 5:** ~~Internal Monologue~~ → **dropped**: thuộc skill layer (agent-side), không phải Shadow Scribe (audit độc lập).
 
