@@ -97,6 +97,14 @@ def test_parse_output_broken():
     with pytest.raises(SystemExit):
         parse_output("Garbage data without separator or json")
 
+def test_call_gemini_query_missing_parts(monkeypatch):
+    """Regression: Gemini returns response without 'parts' (e.g. SAFETY block) → return '' not crash."""
+    import shadow_scribe.gemini as g
+    monkeypatch.setattr(g, "get_gemini_api_key", lambda: "fake-key")
+    monkeypatch.setattr(g, "_http_post_with_retry", lambda *a, **kw: {"candidates": [{"finishReason": "SAFETY"}]})
+    result = g.call_gemini_query("abc123nonexistent", "| 01/01 | proj | tldr | link |")
+    assert result == ""
+
 # ─── io_utils.py tests ────────────────────────────────────────────────────────
 
 def test_parse_session_date():

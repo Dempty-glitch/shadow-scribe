@@ -211,4 +211,7 @@ def call_gemini_query(keyword: str, index_content: str) -> str:
 
     print(f"🤖 Stage 2: Gemini semantic rerank ({model})...")
     result = _http_post_with_retry(url, payload)
-    return result["candidates"][0]["content"]["parts"][0]["text"]
+    try:
+        return result["candidates"][0]["content"]["parts"][0]["text"]
+    except (KeyError, IndexError):
+        return ""
