@@ -1,4 +1,4 @@
-# 🛡️ Shadow Scribe — Sổ tay Vận hành (v1.3.1)
+# 🛡️ Shadow Scribe — Operations Guide (v1.3.2)
 
 > This file is the **sole operations guide** for AI Agents.
 > If you are an IDE Agent (Antigravity, Cursor, Windsurf, Claude Code), read this entire file before taking action.
@@ -37,6 +37,8 @@ API Key: auto-loaded from `~/Documents/agent_vault/.env`.
 ├── digests/                    # Summary reports from watchdog digest
 └── projects/
     └── {project_name}/
+        ├── INTENT.md           # Human-written project boundaries (ADR-009)
+        ├── CRYSTAL.md          # Auto-rendered architecture map (ADR-009)
         ├── PROJECT_INDEX.md    # Timeline + Key Decisions
         └── adr/                # Architecture Decision Records
 ```
@@ -175,3 +177,70 @@ If user forgot to dump for 1-2 days:
 - Use `git log --since="{date}"` to gather code changes → write brief → run watchdog
 - If user provides conversation log → copy into `raw_logs/{project}/` → invoke watchdog
 - Remember: **Watchdog reads**, not Agent. Agent only copies files and runs commands.
+
+---
+
+## 📐 INTENT.md — Project Boundaries (ADR-009)
+
+A short, human-written file that defines what a project IS and IS NOT.
+Lives in: `~/Documents/agent_vault/projects/{project}/INTENT.md`
+
+**When to read:** At session start, alongside INDEX and latest session log.
+**When to write:** Only when user explicitly asks. This is a human document.
+**When to check:** Before proposing new modules or features → if proposal violates a "DOES NOT" rule → reject without debate.
+
+Template:
+```markdown
+# INTENT — {Project Name}
+
+## This project IS:
+- {Core purpose}
+- {Key constraints}
+
+## This project DOES NOT:
+- {Anti-goals, boundaries AI must not cross}
+```
+
+---
+
+## 💎 CRYSTAL.md — Architecture Map (ADR-009)
+
+Auto-rendered snapshot of a project's current module structure.
+Lives in: `~/Documents/agent_vault/projects/{project}/CRYSTAL.md`
+
+**Three rules:**
+1. Crystal is rendered FROM codebase (grep imports/AST). It never leads code — it always follows.
+2. Crystal lives in vault (not repo). It is metadata, not source code.
+3. If Crystal and codebase conflict → **codebase wins**. Always.
+
+### Module Statuses (purely structural, no guesswork)
+
+| Status | Condition | How to check |
+|--------|-----------|-------------|
+| ⬜ skeleton | In INTENT, no file exists | `grep INTENT` + `ls` |
+| 🟡 building | File exists, no test | `ls module` + `grep test_` |
+| 🟢 crystallized | File exists + test exists | `ls module` + `grep test_` |
+| ⚫ deprecated | File exists, nothing imports it | `grep "from module" == 0` |
+
+### When to render/update Crystal
+
+- User explicitly asks (e.g., `@crystallize`, `update crystal`)
+- After a release/tag (optional, agent may suggest)
+- **Never** during active coding — Crystal stays still while you build
+
+### How to render
+
+1. Grep all `from {package}` imports in the codebase → derive module list + edges
+2. Check each module against the 4 statuses above
+3. Write/overwrite `CRYSTAL.md` with a table:
+
+```markdown
+## {Project} Crystal (rendered {date})
+
+| Module | Status | Depends on | Notes |
+|--------|--------|------------|-------|
+| config | 🟢 crystallized | — | Core settings |
+| gemini | 🟢 crystallized | config, security, prompts | HTTP client |
+| cmd_scribe | 🟢 crystallized | gemini, io_utils, config | Main write command |
+| cmd_doctor | ⬜ skeleton | config, gemini | Not yet implemented |
+```
