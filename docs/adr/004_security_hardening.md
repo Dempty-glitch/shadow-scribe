@@ -2,89 +2,90 @@
 
 | Field | Value |
 |-------|-------|
-| **Ngày tạo** | 24/04/2026 |
+| **Date** | 24/04/2026 |
 | **Project** | shadow-scribe |
 | **Status** | 🟢 ACCEPTED |
-| **Session liên quan** | [→](../../sessions/2026-04/24_04_26_1.md) |
+| **Related Session** | [→](../../sessions/2026-04/24_04_26_1.md) |
 | **Artifacts** | [Audit Report](../../artifacts/2026-04/shadow_scribe_audit_24_04_26.md) |
 
-## Context (Bài toán)
-Shadow Scribe gửi **toàn bộ git diff + session brief** lên Gemini API để phân tích. Nếu trong diff có API keys, passwords, PEM keys, hoặc PII — tất cả bay lên Google. Đồng thời, `00_INDEX_MATRIX.md` được đọc-sửa-ghi bởi nhiều agent tiềm năng mà không có cơ chế chống race condition. HTTP calls không có timeout hay retry — 1 lỗi mạng = crash.
+## Context
 
-**Mâu thuẫn cốt lõi:** Muốn gửi diff đầy đủ (để Gemini phân tích chính xác) nhưng phải che giấu data nhạy cảm (để không lộ secrets).
+Shadow Scribe sends **entire git diffs + session briefs** to the Gemini API for analysis. If those diffs contain API keys, passwords, PEM keys, or PII — all of it gets sent to Google. Meanwhile, `00_INDEX_MATRIX.md` is read-modified-written by multiple potential agents with no race condition protection. HTTP calls have no timeout or retry — 1 network error = crash.
+
+**Core contradiction:** Want to send complete diffs (for accurate Gemini analysis) but must conceal sensitive data (to prevent secret leaks).
 
 ---
 
-## 📍 Quyết định (The Chosen Path)
+## 📍 Decision (The Chosen Path)
 
-> **Đã chọn: Defense-in-Depth tại Application Layer**
+> **Chosen: Defense-in-Depth at Application Layer**
 
-Bảo vệ ở 4 lớp, tất cả trong `watchdog_scribe.py`, zero dependency thêm:
+Protection across 4 layers, all within `watchdog_scribe.py`, zero additional dependencies:
 
-| Lớp | Vấn đề | Giải pháp | Hàm |
-|-----|--------|-----------|-----|
-| 1 — Redaction | Secrets trong diff | Regex mask trước khi gửi API | `_redact_secrets()` |
-| 2 — Sanitization | Prompt injection qua XML tags | Escape `<TAG>` → `＜TAG＞` | `_sanitize_tags()` |
-| 3 — Atomicity | Race condition ghi Index | `fcntl.flock` + `tempfile` + `os.replace` | `_atomic_write_index()` |
+| Layer | Problem | Solution | Function |
+|-------|---------|----------|----------|
+| 1 — Redaction | Secrets in diff | Regex mask before API call | `_redact_secrets()` |
+| 2 — Sanitization | Prompt injection via XML tags | Escape `<TAG>` → `＜TAG＞` | `_sanitize_tags()` |
+| 3 — Atomicity | Race condition writing Index | `fcntl.flock` + `tempfile` + `os.replace` | `_atomic_write_index()` |
 | 4 — Resilience | HTTP hang/crash | 120s timeout + exponential backoff 3x | `_http_post_with_retry()` |
 
-**Lý do chọn application-layer:**
-- **Zero dependency** — chỉ dùng stdlib (`re`, `fcntl`, `tempfile`, `time`), không thêm package nào
-- **Portable** — chạy trên bất kỳ macOS/Linux nào có Python 3.9+
-- **Transparent** — user thấy `🔒 Đã redact 2 secret(s)` trực tiếp trên terminal
-- **Tối ưu cho single-user** — flock đủ mạnh cho 2-3 agent song song, không cần database
+**Why application-layer:**
+- **Zero dependency** — only stdlib (`re`, `fcntl`, `tempfile`, `time`), no extra packages
+- **Portable** — runs on any macOS/Linux with Python 3.9+
+- **Transparent** — user sees `🔒 Redacted 2 secret(s)` directly in terminal
+- **Optimized for single-user** — flock is sufficient for 2-3 parallel agents, no database needed
 
-**Trade-off chấp nhận:**
-- Regex redaction **không hoàn hảo** — custom secret formats có thể lọt. Bù bằng cách: user nên dùng `.gitignore` đúng + không hardcode secrets
-- `fcntl.flock` **chỉ hoạt động trên Unix** — Windows cần `msvcrt.locking()`. Chấp nhận vì user chỉ dùng macOS
-- Fullwidth character escape (`＜` thay `<`) **thay đổi visual** của content — chấp nhận vì content đã qua Gemini sẽ không được hiển thị raw
-
----
-
-## 🚫 Các con đường đã loại bỏ (Rejected Paths)
-
-### ❌ Cách 1 — Chỉ dựa vào .gitignore
-- **Loại từ vòng:** Phân tích
-- **Lý do:** `.gitignore` chặn file khỏi git, nhưng không chặn secrets hardcoded trong code đã tracked. Ví dụ: `config.py` có `API_KEY = "AIza..."` — file được tracked hợp lệ nhưng chứa secret. .gitignore không giúp gì.
-
-### ❌ Cách 2 — Encrypted transport (mã hóa diff trước khi gửi)
-- **Loại từ vòng:** Lý thuyết
-- **Lý do:** Gemini cần đọc plaintext để phân tích. Mã hóa → Gemini không đọc được → vô nghĩa. Vấn đề không phải ai đọc (Google), mà là data nào được gửi.
-
-### ❌ Cách 3 — API proxy/middleware (chạy local server filter trước khi forward)
-- **Loại từ vòng:** Lý thuyết
-- **Lý do:** Vi phạm nguyên tắc zero-dependency. Thêm proxy = thêm process, thêm port, thêm config. Overkill cho CLI script.
-
-### ❌ Cách 4 — SQLite WAL cho Index (thay fcntl.flock)
-- **Loại từ vòng:** Phân tích
-- **Lý do:** Index là file Markdown — agent đọc trực tiếp bằng mắt và grep. Chuyển sang SQLite = agent cần tool để đọc, mất tính "Human-readable Relational Database". Trade-off không xứng đáng cho 1 file < 100 dòng.
-
-### ❌ Cách 5 — Pre-commit git hook (chặn commit nếu có secrets)
-- **Loại từ vòng:** Defer (Phase 5 roadmap)
-- **Lý do:** Hook chặn ở git layer — tốt nhưng không bảo vệ `watchdog audit` (đọc diff unstaged). Application-layer redaction bảo vệ tại điểm cuối cùng trước khi data rời máy.
+**Accepted trade-offs:**
+- Regex redaction **isn't perfect** — custom secret formats may slip through. Mitigated by: proper `.gitignore` + don't hardcode secrets
+- `fcntl.flock` **only works on Unix** — Windows needs `msvcrt.locking()`. Acceptable since user only uses macOS
+- Fullwidth character escaping (`＜` replacing `<`) **changes visual appearance** of content — acceptable since content processed by Gemini won't be displayed raw
 
 ---
 
-## 📊 Ma trận so sánh
+## 🚫 Rejected Paths
 
-| Tiêu chí | .gitignore ❌ | Encrypted ❌ | Proxy ❌ | SQLite ❌ | **App-layer ✅** |
+### ❌ Option 1 — Rely solely on .gitignore
+- **Rejected at:** Analysis stage
+- **Reason:** `.gitignore` blocks files from git but doesn't block hardcoded secrets in tracked code. Example: `config.py` with `API_KEY = "AIza..."` — file is legitimately tracked but contains a secret. `.gitignore` doesn't help.
+
+### ❌ Option 2 — Encrypted transport (encrypt diff before sending)
+- **Rejected at:** Theory stage
+- **Reason:** Gemini needs plaintext to analyze. Encryption → Gemini can't read → pointless. The problem isn't *who* reads (Google), but *what data* gets sent.
+
+### ❌ Option 3 — API proxy/middleware (local server filters before forwarding)
+- **Rejected at:** Theory stage
+- **Reason:** Violates zero-dependency principle. Adding a proxy = more processes, ports, config. Overkill for a CLI script.
+
+### ❌ Option 4 — SQLite WAL for Index (replacing fcntl.flock)
+- **Rejected at:** Analysis stage
+- **Reason:** Index is a Markdown file — agents read it directly by eye and grep. Switching to SQLite = agents need tools to read, losing the "Human-readable Relational Database" property. Trade-off not worth it for a <100 line file.
+
+### ❌ Option 5 — Pre-commit git hook (block commits containing secrets)
+- **Rejected at:** Deferred (future roadmap)
+- **Reason:** Hook blocks at git layer — good but doesn't protect `watchdog audit` (reads unstaged diff). Application-layer redaction protects at the last checkpoint before data leaves the machine.
+
+---
+
+## 📊 Comparison Matrix
+
+| Criteria | .gitignore ❌ | Encrypted ❌ | Proxy ❌ | SQLite ❌ | **App-layer ✅** |
 |----------|-------------|------------|---------|---------|-----------------|
-| Chặn hardcoded secrets | ❌ | N/A | ✅ | N/A | **✅** |
+| Blocks hardcoded secrets | ❌ | N/A | ✅ | N/A | **✅** |
 | Zero dependency | ✅ | ❌ (crypto lib) | ❌ (server) | ❌ (sqlite3) | **✅ (stdlib)** |
-| Agent đọc Index bằng grep | ✅ | ✅ | ✅ | ❌ | **✅** |
-| Chống race condition | ❌ | ❌ | ❌ | ✅ | **✅ (flock)** |
+| Agent reads Index via grep | ✅ | ✅ | ✅ | ❌ | **✅** |
+| Race condition protection | ❌ | ❌ | ❌ | ✅ | **✅ (flock)** |
 | HTTP resilience | ❌ | ❌ | ✅ | ❌ | **✅ (retry)** |
 | Portable (Mac/Linux) | ✅ | ✅ | 🟡 | ✅ | **✅** |
 | Windows compat | ✅ | ✅ | 🟡 | ✅ | **❌ (fcntl)** |
 
 ---
 
-## 🔮 Đường tiềm năng chưa test (Future Paths)
+## 🔮 Future Paths (Untested)
 
 ### ⏳ Pre-commit Hook + Redaction combo
-- **Khi nào:** Phase 5 (nếu team multi-user)
-- **Ý tưởng:** Hook scan staged files bằng cùng `_SECRET_PATTERNS`, block commit nếu tìm thấy. Kết hợp với app-layer = defense at 2 checkpoints.
+- **When:** If team goes multi-user
+- **Idea:** Hook scans staged files using the same `_SECRET_PATTERNS`, blocks commit if found. Combined with app-layer = defense at 2 checkpoints.
 
 ### ⏳ Custom secret pattern config
-- **Khi nào:** Nếu user có secret formats đặc thù (VD: internal API tokens)
-- **Ý tưởng:** Cho phép `~/.watchdog_redact_patterns` chứa regex bổ sung. Merge vào `_SECRET_PATTERNS` khi load.
+- **When:** If user has unique secret formats (e.g., internal API tokens)
+- **Idea:** Allow `~/.watchdog_redact_patterns` containing additional regex. Merged into `_SECRET_PATTERNS` at load time.

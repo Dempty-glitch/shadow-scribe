@@ -2,34 +2,34 @@
 
 | Field | Value |
 |-------|-------|
-| **Ngày tạo** | 25/04/2026 |
+| **Date** | 25/04/2026 |
 | **Project** | shadow-scribe |
 | **Status** | 🟢 ACCEPTED |
-| **Session liên quan** | [→](../../sessions/2026-04/25_04_26.md) |
-| **Plan liên quan** | [v1.2.2_refactor.md](../plans/v1.2.2_refactor.md) |
+| **Related Session** | [→](../../sessions/2026-04/25_04_26.md) |
+| **Related Plan** | [v1.2.2_refactor.md](../plans/v1.2.2_refactor.md) |
 
-> **Next status flip:** ACCEPTED khi user sign-off → IMPLEMENTED khi v1.2.2 merged vào main.
-
----
-
-## Context (Bài toán)
-
-Shadow Scribe v1.2.1 đã ship thành công Phase 3.4 Security Hardening. Tuy nhiên một đánh giá độc lập (Claude Sonnet) chấm **6/10 Code Quality** và **5/10 Testing** — hai điểm thấp nhất trong 10 tiêu chí. Root cause:
-
-- `watchdog_scribe.py` đã phình lên **901 dòng** — 3 commands + 2 prompts + 6 helpers + config + main trong 1 file
-- **0 unit tests** cho security helpers (`_redact_secrets`, `_sanitize_tags`, `_atomic_write_index`)
-- **0 CI/CD** — `test_audit_quality.py` chỉ chạy thủ công khi nhớ
-- **Parser giòn** — split bằng string `===INDEX===`, Gemini lệch 1 ký tự = crash không recover
-
-Nếu tiếp tục thêm feature (Phase 4 Telegram, Phase 6 RAG) lên monolith này, tech debt sẽ nhân đôi và không ai muốn đụng vào nữa.
-
-**Trigger thực tế:** Claude Sonnet chấm 6/10 Code Quality, 5/10 Testing → muốn B+ → A- trước khi mở Phase 4.
+> **Next status flip:** ACCEPTED on user sign-off → IMPLEMENTED when v1.2.2 merged to main.
 
 ---
 
-## 📍 Quyết định (The Chosen Path)
+## Context
 
-> **Đã chọn: 3 việc đồng thời trong 1 version bump (v1.2.2 PATCH)**
+Shadow Scribe v1.2.1 successfully shipped Phase 3.4 Security Hardening. However, an independent audit (Claude Sonnet) rated **6/10 Code Quality** and **5/10 Testing** — the two lowest scores across 10 criteria. Root causes:
+
+- `watchdog_scribe.py` had ballooned to **901 lines** — 3 commands + 2 prompts + 6 helpers + config + main in 1 file
+- **0 unit tests** for security helpers (`_redact_secrets`, `_sanitize_tags`, `_atomic_write_index`)
+- **0 CI/CD** — `test_audit_quality.py` only ran manually when remembered
+- **Brittle parser** — split by string `===INDEX===`; Gemini off by 1 char = unrecoverable crash
+
+Continuing to add features (Phase 4 Telegram, Phase 6 RAG) on this monolith would double the tech debt and make the codebase untouchable.
+
+**Actual trigger:** Claude Sonnet rated 6/10 Code Quality, 5/10 Testing → wanted B+ → A- before opening Phase 4.
+
+---
+
+## 📍 Decision (The Chosen Path)
+
+> **Chosen: 3 simultaneous tasks in 1 version bump (v1.2.2 PATCH)**
 
 ### 1. Split monolith → `shadow_scribe/` package (8 modules)
 
@@ -45,9 +45,9 @@ shadow_scribe/
 └── cmd_digest.py  — cmd_digest()
 ```
 
-`watchdog_scribe.py` trở thành thin entry point ≤ 50 dòng.
+`watchdog_scribe.py` becomes a thin entry point ≤ 50 lines.
 
-**Lý do:** Test isolation thật sự đòi hỏi mỗi module có thể import độc lập. Test `security.py` không được kéo theo HTTP client, không cần mock Gemini.
+**Rationale:** True test isolation requires each module to be independently importable. Testing `security.py` must not pull in HTTP client, must not need Gemini mocks.
 
 ### 2. CI: GitHub Actions matrix 3.9 + 3.12, ruff, mypy non-strict
 
@@ -56,103 +56,103 @@ matrix: python-version: ['3.9', '3.12']
 steps: ruff check → mypy --ignore-missing-imports → pytest → test_audit_quality.py --mock
 ```
 
-**Lý do:** Oldest supported (3.9) + newest (3.12) đủ bắt compatibility drift mà không thừa. `mypy non-strict` là gate-keeper cho tương lai — chưa catch gì ngay vì 0 type hints, nhưng có cọc để tighten dần ở v1.2.3+.
+**Rationale:** Oldest supported (3.9) + newest (3.12) catches compatibility drift without excess. `mypy non-strict` is a gate-keeper for the future — won't catch much now with 0 type hints, but establishes a baseline to tighten in v1.2.3+.
 
-### 3. JSON parser 3-layer thay `===INDEX===`
+### 3. 3-layer JSON parser replacing `===INDEX===`
 
 ```
-Layer 1: json.loads(raw)                    — response_mime_type đã ép
-Layer 2: strip code fence → json.loads()    — Gemini đôi khi vẫn wrap
-Layer 3: split("===INDEX===")               — fallback backward compat
+Layer 1: json.loads(raw)                    — response_mime_type enforced
+Layer 2: strip code fence → json.loads()    — Gemini sometimes still wraps
+Layer 3: split("===INDEX===")              — fallback backward compat
 ```
 
-Dùng `response_mime_type: "application/json"` trong API call để ép Gemini trả JSON thuần.
+Uses `response_mime_type: "application/json"` in API call to force Gemini to return pure JSON.
 
-**Lý do:** String separator là single point of failure. 3-layer không bao giờ crash — worst case trả `("", "")` và ghi warning.
+**Rationale:** String separator is a single point of failure. 3-layer never crashes — worst case returns `("", "")` and logs a warning.
 
 ---
 
-## 🚫 Các con đường đã loại bỏ (Rejected Paths)
+## 🚫 Rejected Paths
 
-### ❌ Tên package `watchdog/`
-- **Lý do:** `watchdog` là PyPI package phổ biến (~13M downloads/tháng, file-system events). Import collision nếu user cài thêm trong cùng env.
+### ❌ Package name `watchdog/`
+- **Reason:** `watchdog` is a popular PyPI package (~13M downloads/month, file-system events). Import collision if user installs it in the same env.
 - **Fix:** `shadow_scribe/`
 
-### ❌ Split chỉ thành 2-3 file lớn
-- **Lý do:** `security.py` + `gemini.py` là 2 concern hoàn toàn khác nhau. Gom vào `helpers.py` thì test vẫn phải mock HTTP khi test regex — không phải test isolation thật sự.
+### ❌ Split into only 2-3 large files
+- **Reason:** `security.py` and `gemini.py` are completely different concerns. Merging into `helpers.py` means tests still need HTTP mocks when testing regex — that's not true test isolation.
 
 ### ❌ mypy `--strict`
-- **Lý do:** Project hiện tại 0 type hints → `--strict` sinh hàng trăm errors ngay lập tức → CI đỏ vĩnh viễn → nobody fixes → CI bị bỏ qua. Non-strict là compromise thực tế.
+- **Reason:** Project currently has 0 type hints → `--strict` generates hundreds of errors immediately → CI permanently red → nobody fixes → CI gets ignored. Non-strict is a pragmatic compromise.
 
-### ❌ Bump v1.3.0
-- **Lý do:** SemVer: MINOR khi có user-visible feature mới. Refactor + CI + parser đổi nội bộ = PATCH. v1.3.0 nên dành cho Phase 4 Telegram.
+### ❌ Bump to v1.3.0
+- **Reason:** SemVer: MINOR when there's a new user-visible feature. Refactor + CI + parser are internal changes = PATCH. v1.3.0 should be reserved for Phase 4 Telegram.
 
-### ❌ JSON parser không có fallback
-- **Lý do:** Gemini đôi khi wrap JSON trong code fence dù đã dặn không làm vậy. Không có fallback = crash production. 3-layer là belt-and-suspenders.
+### ❌ JSON parser without fallback
+- **Reason:** Gemini sometimes wraps JSON in code fences despite being told not to. No fallback = production crash. 3-layer is belt-and-suspenders.
 
 ### ❌ Wildcard import `from shadow_scribe.config import *`
-- **Lý do:** Namespace pollution + side-effect khi import + lint warning vĩnh viễn. Explicit import từng symbol.
+- **Reason:** Namespace pollution + import side-effects + permanent lint warnings. Use explicit symbol imports.
 
 ---
 
-## ⚠️ Trade-offs chấp nhận
+## ⚠️ Accepted Trade-offs
 
-| Trade-off | Mức độ | Lý do chấp nhận |
-|-----------|--------|-----------------|
-| mypy chưa catch gì (0 type hints) | 🟢 LOW | Gate-keeper, không phải bug catcher ngay. Type hints ship dần v1.2.3+ |
-| 14-16h work, không thêm feature nào | 🟡 MED | Debt repayment — đầu tư vào foundation trước Phase 4/6 |
-| 10 commits granular — nếu skip verify có silent regression | 🟡 MED | Giảm thiểu bằng quy tắc: mỗi step verify trước khi commit tiếp |
-| `response_mime_type` cần Gemini 1.5-flash+ | 🟢 LOW | Project dùng `gemini-2.5-flash` → OK. Layer 2/3 vẫn bắt nếu model cũ |
-| Import paths thay đổi trong `setup.sh` | 🟢 LOW | Chỉ alias trong `setup.sh` — không có external consumer |
+| Trade-off | Severity | Justification |
+|-----------|----------|---------------|
+| mypy catches nothing yet (0 type hints) | 🟢 LOW | Gate-keeper, not an immediate bug catcher. Type hints ship incrementally in v1.2.3+ |
+| 14-16h of work, no new features | 🟡 MED | Debt repayment — investing in foundation before Phase 4/6 |
+| 10 granular commits — skipping verify risks silent regression | 🟡 MED | Mitigated by rule: verify each step before committing the next |
+| `response_mime_type` requires Gemini 1.5-flash+ | 🟢 LOW | Project uses `gemini-2.5-flash` → OK. Layer 2/3 still catches on older models |
+| Import paths change in `setup.sh` | 🟢 LOW | Only alias in `setup.sh` — no external consumers |
 
 ---
 
 ## 📊 Success Metrics
 
-> Baseline từ Claude Sonnet audit 25/04/2026. Đo lại sau khi v1.2.2 ship.
+> Baseline from Claude Sonnet audit 25/04/2026. Re-measure after v1.2.2 ships.
 
-| Tiêu chí | Before (v1.2.1) | Target (v1.2.2) |
-|----------|----------------|----------------|
+| Criteria | Before (v1.2.1) | Target (v1.2.2) |
+|----------|-----------------|-----------------|
 | Code Quality | 5.5/10 | 8.0/10 |
 | Testing/CI | 5.0/10 | 7.5/10 |
 | Architecture | 6.5/10 | 8.0/10 |
 | Maintainability | 6.0/10 | 7.5/10 |
-| **Tổng weighted** | **6.9/10 (B+)** | **≥8.0/10 (A-)** |
+| **Weighted total** | **6.9/10 (B+)** | **≥8.0/10 (A-)** |
 | Test coverage critical paths | 0% | ≥75% |
-| Max dòng/file | 901 | ≤250 |
+| Max lines/file | 901 | ≤250 |
 | CI green | ❌ | ✅ (3.9 + 3.12) |
 
 ---
 
 ## 🔄 Rollback Plan
 
-- **Tag trước khi bắt đầu:** `git tag v1.2.1-stable` tại commit cuối v1.2.1
-- **Rollback từng bước:** Mỗi step là 1 commit riêng → `git revert <commit>` bất kỳ lúc nào
-- **Rollback toàn bộ:** `git checkout v1.2.1-stable` + update alias trong `setup.sh`
-- **Không nhánh long-running:** `main` là source of truth, không tạo branch `refactor/v1.2.2`
+- **Tag before starting:** `git tag v1.2.1-stable` at last v1.2.1 commit
+- **Per-step rollback:** Each step is 1 commit → `git revert <commit>` anytime
+- **Full rollback:** `git checkout v1.2.1-stable` + update alias in `setup.sh`
+- **No long-running branches:** `main` is source of truth, no `refactor/v1.2.2` branch
 
 ---
 
-## 🔮 Consequences (Hệ quả)
+## 🔮 Consequences
 
-### Tích cực
-- **Test isolation thật sự** — `security.py` test không cần mock HTTP
-- **CI xanh** — regression được bắt tự động, không cần nhớ chạy tay
-- **Foundation cho Phase 4/6** — Telegram bot import `shadow_scribe.cmd_audit` trực tiếp
-- **PyPI-ready** — `shadow_scribe/` package structure cho phép publish nếu muốn sau này
-- **Parser an toàn hơn** — 3-layer fallback resilient. (Quyết định bổ sung: Nếu cả 3 layer fail (garbage output), script sẽ `sys.exit(1)` thay vì trả về `("", "")` như plan ban đầu, để tránh silent data corruption).
+### Positive
+- **True test isolation** — `security.py` tests don't need HTTP mocks
+- **Green CI** — regressions caught automatically, no manual memory required
+- **Foundation for Phase 4/6** — Telegram bot can `import shadow_scribe.cmd_audit` directly
+- **PyPI-ready** — `shadow_scribe/` package structure enables future publishing
+- **Safer parser** — 3-layer fallback is resilient. (Additional decision: If all 3 layers fail (garbage output), script will `sys.exit(1)` instead of returning `("", "")` per the original plan, to prevent silent data corruption.)
 
-### Tiêu cực / Rủi ro
-- **14-16h không có feature mới** — cost phải trả để clean up debt trước Phase 4
+### Negative / Risks
+- **14-16h with no new features** — the cost of cleaning up debt before Phase 4
 
 ---
 
-## 📊 Ma trận so sánh
+## 📊 Comparison Matrix
 
-| Tiêu chí | Monolith 1 file ❌ | 2-3 file lớn ❌ | **8 modules ✅** |
-|----------|-------------------|----------------|-----------------|
+| Criteria | Monolith 1 file ❌ | 2-3 large files ❌ | **8 modules ✅** |
+|----------|-------------------|-------------------|-----------------|
 | Test isolation | ❌ | 🟡 | **✅** |
 | Import collision risk | N/A | N/A | **✅ (`shadow_scribe/`)** |
-| Rollback granular | ❌ | 🟡 | **✅ (1 commit/module)** |
-| Dòng/file | 901 | ~300-400 | **≤250** |
+| Granular rollback | ❌ | 🟡 | **✅ (1 commit/module)** |
+| Lines/file | 901 | ~300-400 | **≤250** |
 | Foundation Phase 4/6 | ❌ | 🟡 | **✅** |

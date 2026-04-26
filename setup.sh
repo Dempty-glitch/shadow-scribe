@@ -1,7 +1,7 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────
-# Shadow Scribe — Setup Script (chạy 1 lần duy nhất)
-# Tạo vault structure + .env + INDEX_MATRIX + alias
+# Shadow Scribe — Setup Script (run once)
+# Creates vault structure + .env + INDEX_MATRIX + alias
 # ─────────────────────────────────────────────────────────
 
 set -e
@@ -15,67 +15,67 @@ echo "🛡️  SHADOW SCRIBE — Initial Setup"
 echo "════════════════════════════════════════════════════════════"
 echo ""
 
-# ── Step 1: Tạo Vault Structure ──────────────────────────
-echo "📂 Tạo vault tại: $VAULT_DIR"
+# ── Step 1: Create Vault Structure ────────────────────────
+echo "📂 Creating vault at: $VAULT_DIR"
 mkdir -p "$VAULT_DIR/sessions"
 mkdir -p "$VAULT_DIR/raw_logs"
 mkdir -p "$VAULT_DIR/artifacts"
 mkdir -p "$VAULT_DIR/projects"
 mkdir -p "$VAULT_DIR/digests"
 mkdir -p "$VAULT_DIR/trash"
-echo "   ✅ Vault structure đã sẵn sàng"
+echo "   ✅ Vault structure ready"
 
-# ── Step 2: Tạo 00_INDEX_MATRIX.md ──────────────────────
+# ── Step 2: Create 00_INDEX_MATRIX.md ────────────────────
 INDEX_FILE="$VAULT_DIR/00_INDEX_MATRIX.md"
 if [ ! -f "$INDEX_FILE" ]; then
     cat > "$INDEX_FILE" << 'EOF'
 # 🗄️ Master Index — Shadow Scribe Vault
 
-> Mỗi dòng = 1 phiên làm việc. Tự động cập nhật bởi `watchdog scribe`.
+> Each row = 1 session. Auto-updated by `watchdog scribe`.
 
-| Ngày | Project | Workspace | TL;DR | Session | Plan | Tags |
+| Date | Project | Workspace | TL;DR | Session | Plan | Tags |
 |------|---------|-----------|-------|---------|------|------|
 EOF
-    echo "   ✅ 00_INDEX_MATRIX.md đã tạo"
+    echo "   ✅ 00_INDEX_MATRIX.md created"
 else
-    echo "   ℹ️  00_INDEX_MATRIX.md đã tồn tại — bỏ qua"
+    echo "   ℹ️  00_INDEX_MATRIX.md already exists — skipping"
 fi
 
-# ── Step 3: Tạo .env ────────────────────────────────────
+# ── Step 3: Create .env ──────────────────────────────────
 ENV_FILE="$VAULT_DIR/.env"
 if [ ! -f "$ENV_FILE" ]; then
     echo ""
-    read -p "🔑 Nhập Gemini API Key (lấy tại https://aistudio.google.com/): " API_KEY
+    read -p "🔑 Enter your Gemini API Key (get one at https://aistudio.google.com/): " API_KEY
     if [ -n "$API_KEY" ]; then
         cat > "$ENV_FILE" << EOF
 # Shadow Scribe — Environment Variables
-# Watchdog sẽ tự đọc file này, không cần export.
+# Watchdog auto-reads this file, no export needed.
 GEMINI_API_KEY=$API_KEY
 EOF
-        echo "   ✅ .env đã tạo tại $ENV_FILE"
+        echo "   ✅ .env created at $ENV_FILE"
     else
         cat > "$ENV_FILE" << 'EOF'
 # Shadow Scribe — Environment Variables
-# Watchdog sẽ tự đọc file này, không cần export.
+# Watchdog auto-reads this file, no export needed.
 GEMINI_API_KEY=YOUR_KEY_HERE
 EOF
-        echo "   ⚠️  .env đã tạo nhưng chưa có API Key. Chỉnh sửa sau: $ENV_FILE"
+        echo "   ⚠️  .env created but no API Key provided. Edit later: $ENV_FILE"
     fi
 else
-    echo "   ℹ️  .env đã tồn tại — bỏ qua"
+    echo "   ℹ️  .env already exists — skipping"
 fi
 
-# ── Step 4: Copy GUIDE.md vào vault ─────────────────────
+# ── Step 4: Copy GUIDE.md into vault ─────────────────────
 GUIDE_SRC="$SCRIPT_DIR/GUIDE.md"
 GUIDE_DEST="$VAULT_DIR/GUIDE.md"
 if [ -f "$GUIDE_SRC" ]; then
     cp "$GUIDE_SRC" "$GUIDE_DEST"
-    echo "   ✅ GUIDE.md đã copy vào vault"
+    echo "   ✅ GUIDE.md copied into vault"
 else
-    echo "   ⚠️  Không tìm thấy GUIDE.md trong repo"
+    echo "   ⚠️  GUIDE.md not found in repo"
 fi
 
-# ── Step 5: Thêm watchdog alias vào shell ───────────────
+# ── Step 5: Add watchdog alias to shell ──────────────────
 SHELL_RC=""
 if [ -f "$HOME/.zshrc" ]; then
     SHELL_RC="$HOME/.zshrc"
@@ -93,27 +93,27 @@ function watchdog() {
 }
 # ──────────────────────────────────────────────────────
 EOF
-        echo "   ✅ watchdog alias đã thêm vào $SHELL_RC"
-        echo "   ℹ️  Chạy 'source $SHELL_RC' để kích hoạt"
+        echo "   ✅ watchdog alias added to $SHELL_RC"
+        echo "   ℹ️  Run 'source $SHELL_RC' to activate"
     else
-        echo "   ℹ️  watchdog alias đã tồn tại — bỏ qua"
+        echo "   ℹ️  watchdog alias already exists — skipping"
     fi
 else
-    echo "   ⚠️  Không tìm thấy .zshrc hoặc .bashrc"
-    echo "      Thêm thủ công: function watchdog() { python3 $SCRIPT_DIR/watchdog_scribe.py \"\$@\"; }"
+    echo "   ⚠️  Could not find .zshrc or .bashrc"
+    echo "      Add manually: function watchdog() { python3 $SCRIPT_DIR/watchdog_scribe.py \"\$@\"; }"
 fi
 
 # ── Done ─────────────────────────────────────────────────
 echo ""
 echo "════════════════════════════════════════════════════════════"
-echo "✅ Setup hoàn tất!"
+echo "✅ Setup complete!"
 echo ""
-echo "📖 Bước tiếp theo:"
-echo "   1. source $SHELL_RC         (kích hoạt alias)"
-echo "   2. watchdog --help           (kiểm tra)"
-echo "   3. Gửi GUIDE.md cho Agent:   'Đọc ~/Documents/agent_vault/GUIDE.md'"
+echo "📖 Next steps:"
+echo "   1. source $SHELL_RC         (activate alias)"
+echo "   2. watchdog --help           (verify)"
+echo "   3. Send GUIDE.md to Agent:   'Read ~/Documents/agent_vault/GUIDE.md'"
 echo ""
-echo "📚 Tài liệu:"
-echo "   • README.md  — Hiểu kiến trúc & tính năng"
-echo "   • GUIDE.md   — Sổ tay vận hành cho AI Agent"
+echo "📚 Documentation:"
+echo "   • README.md  — Architecture & features"
+echo "   • GUIDE.md   — Operations manual for AI Agents"
 echo "════════════════════════════════════════════════════════════"

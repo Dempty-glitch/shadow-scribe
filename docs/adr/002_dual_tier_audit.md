@@ -2,89 +2,89 @@
 
 | Field | Value |
 |-------|-------|
-| **Ngày tạo** | 14/04/2026 |
-| **Project** | shadow-prominence |
+| **Date** | 14/04/2026 |
+| **Project** | shadow-scribe |
 | **Status** | 🟢 ACCEPTED |
-| **Session liên quan** | [→](../../sessions/2026-04/14_04_26.md) |
+| **Related Session** | [→](../../sessions/2026-04/14_04_26.md) |
 
-## Context (Bài toán)
+## Context
 
-Sau khi `watchdog scribe` chạy thành công (Phase 3.1), nảy sinh nhu cầu "soi lỗi giữa giờ" mà không muốn kích hoạt toàn bộ pipeline ghi file. Câu hỏi cốt lõi:
+After `watchdog scribe` was working successfully (Phase 3.1), a need emerged for "mid-session error checking" without triggering the full file-writing pipeline. The core question:
 
-> *"Làm sao để kiểm tra goal drift ngay khi đang code, mà không làm hỏng index hay tạo log nửa vời?"*
+> *"How can we check for goal drift while actively coding, without corrupting the index or creating partial logs?"*
 
-Ràng buộc:
-- `scribe` là lệnh **Destructive** (ghi file + xóa rác) — không thể dùng để "xem nhanh"
-- Cần một lệnh **Read-only, idempotent** — chạy bao nhiêu lần cũng an toàn
-- Git diff phải lấy từ **thư mục project** (CWD), không phải từ Vault
-
----
-
-## 📍 Quyết định (The Chosen Path)
-
-> **Đã chọn: Cách 3 — Tách nghiệp vụ hoàn toàn: `scribe` (Destructive) + `audit` (Read-only)**
-
-**Lý do chọn:**
-- Tuân thủ nguyên tắc **Single Responsibility Principle (SRP)** — mỗi lệnh làm đúng 1 việc
-- `audit` là **idempotent** hoàn toàn — gọi 10 lần cho kết quả như nhau, không phá gì
-- Prompt riêng cho `audit` (ngắn, nhiệt độ 0.1) → nhanh hơn, ít hallucinate hơn `scribe`
-- Auto-scan `implementation_plan.md` theo `mtime` → tự động kích hoạt Hard Audit khi có Plan
-
-**Trade-off chấp nhận:**
-- Phải maintain 2 subcommand và 2 system prompt riêng biệt trong cùng 1 script
-- User cần nhớ: `audit` (giữa giờ) vs `scribe` (cuối ngày)
+Constraints:
+- `scribe` is a **Destructive** command (writes files + deletes temp data) — cannot be used for "quick checks"
+- Need a **Read-only, idempotent** command — safe to run any number of times
+- Git diff must be taken from the **project directory** (CWD), not from the Vault
 
 ---
 
-## 🚫 Các con đường đã loại bỏ (Rejected Paths)
+## 📍 Decision (The Chosen Path)
 
-### ❌ Cách 1 — "Silent Assassin": Giữ nguyên `scribe`, ẩn bớt output Terminal
+> **Chosen: Option 3 — Full separation of concerns: `scribe` (Destructive) + `audit` (Read-only)**
 
-- **Loại từ vòng:** Lý thuyết (ngay khi phân tích)
-- **Lý do:** Vi phạm SRP — vẫn là lệnh Destructive dù có "giấu" output. Một lần gõ nhầm giữa giờ → tạo log nửa vời + xóa brief + chèn dòng thừa vào Index. Nguy hiểm hơn không làm gì
-- **Bằng chứng:** Phân tích use case: "Xong module, chưa muốn nghỉ, chỉ hỏi có lệch Plan không" → `scribe` sẽ yêu cầu `@dump` trước → tạo file 1-way → không reversible
+**Rationale:**
+- Follows **Single Responsibility Principle (SRP)** — each command does exactly one thing
+- `audit` is **fully idempotent** — call it 10 times, same result, no side effects
+- Dedicated prompt for `audit` (shorter, temperature 0.1) → faster, less hallucination than `scribe`
+- Auto-scans `implementation_plan.md` by `mtime` → automatically activates Hard Audit when a Plan exists
 
-### ❌ Cách 2 — Thêm flag `--check` vào `scribe` (Ví dụ: `scribe --check`)
-
-- **Loại từ vòng:** Lý thuyết
-- **Lý do:** Chung subcommand nhưng rẽ nhánh logic → gây nhầm lẫn UX. User không biết `scribe --check` có ghi file không. "Giảm độ dài văn bản" ≠ "Tách biệt nghiệp vụ"
-
----
-
-## 🔮 Đường tiềm năng chưa test (Future Paths)
-
-### ⏳ Cách 4 — `audit` gọi qua Telegram bot
-
-- **Lý thuyết:** User nhắn `/audit` từ điện thoại khi đang coding, bot tự `git diff` remote repo và trả về kết quả
-- **Khi nào nên thử:** Phase 3.3 (Telegram integration)
-- **Rủi ro dự đoán:** Cần SSH/API vào máy local hoặc CI/CD hook — phức tạp hơn nhiều
-
-### ⏳ Cách 5 — `audit` chạy tự động khi `git commit`
-
-- **Lý thuyết:** Git pre-commit hook → chạy audit → block commit nếu 🔴 GOAL DRIFT
-- **Khi nào nên thử:** Khi workflow đã ổn định
-- **Rủi ro dự đoán:** Gọi API Gemini mỗi commit → chậm + tốn tiền nếu commit nhiều
+**Accepted trade-offs:**
+- Must maintain 2 subcommands and 2 separate system prompts in one script
+- User needs to remember: `audit` (mid-session) vs `scribe` (end-of-day)
 
 ---
 
-## 📊 Ma trận so sánh
+## 🚫 Rejected Paths
 
-| Tiêu chí | Cách 1 ❌ Silent Assassin | Cách 2 ❌ `--check` flag | **Cách 3 ✅ Tách lệnh** | Cách 4 ⏳ Telegram | Cách 5 ⏳ Git hook |
+### ❌ Option 1 — "Silent Assassin": Keep `scribe`, hide terminal output
+
+- **Rejected at:** Theory stage (immediately upon analysis)
+- **Reason:** Violates SRP — still a Destructive command despite "hiding" output. One accidental mid-session invocation → creates partial log + deletes brief + inserts stale row into Index. More dangerous than doing nothing.
+- **Evidence:** Use case analysis: "Finished a module, not ready to stop, just want to check plan alignment" → `scribe` would require `@dump` first → creates one-way file → not reversible.
+
+### ❌ Option 2 — Add `--check` flag to `scribe` (e.g., `scribe --check`)
+
+- **Rejected at:** Theory stage
+- **Reason:** Same subcommand with branching logic → confusing UX. User can't tell if `scribe --check` writes files. "Reducing command count" ≠ "Separating concerns".
+
+---
+
+## 🔮 Future Paths (Untested)
+
+### ⏳ Option 4 — `audit` via Telegram bot
+
+- **Theory:** User sends `/audit` from phone while coding; bot runs `git diff` on remote repo and returns result
+- **When to try:** Phase 4 (Telegram integration)
+- **Predicted risk:** Needs SSH/API into local machine or CI/CD hook — significantly more complex
+
+### ⏳ Option 5 — `audit` runs automatically on `git commit`
+
+- **Theory:** Git pre-commit hook → runs audit → blocks commit if 🔴 GOAL DRIFT
+- **When to try:** Once workflow is stable
+- **Predicted risk:** Calling Gemini API on every commit → slow + costly with frequent commits
+
+---
+
+## 📊 Comparison Matrix
+
+| Criteria | Opt 1 ❌ Silent Assassin | Opt 2 ❌ `--check` flag | **Opt 3 ✅ Separate cmds** | Opt 4 ⏳ Telegram | Opt 5 ⏳ Git hook |
 |----------|--------------------------|--------------------------|-------------------------|--------------------|-------------------|
-| Read-only? | ❌ (vẫn ghi file) | ⚠️ (tùy flag) | **✅ hoàn toàn** | ✅ | ✅ |
+| Read-only? | ❌ (still writes) | ⚠️ (depends on flag) | **✅ fully** | ✅ | ✅ |
 | Idempotent? | ❌ | ⚠️ | **✅** | ✅ | ✅ |
-| Cần @dump? | ✅ (phụ thuộc) | ✅ (phụ thuộc) | **❌ độc lập** | ❌ | ❌ |
-| UX rõ ràng? | ❌ dễ nhầm | ❌ dễ nhầm | **✅ tường minh** | ✅ | ✅ |
-| Đã test? | ❌ | ❌ | **✅** | ❌ | ❌ |
+| Requires @dump? | ✅ (dependent) | ✅ (dependent) | **❌ independent** | ❌ | ❌ |
+| Clear UX? | ❌ confusing | ❌ confusing | **✅ explicit** | ✅ | ✅ |
+| Tested? | ❌ | ❌ | **✅** | ❌ | ❌ |
 
 ---
 
-## 🐛 Bug phát hiện trong quá trình implement
+## 🐛 Bug Discovered During Implementation
 
-**Bug: UUID sort thay vì mtime sort**
+**Bug: UUID sort instead of mtime sort**
 
-Khi auto-scan `implementation_plan.md` trong `.gemini/antigravity/brain/`, code dùng `sorted(dirs, reverse=True)` sắp xếp UUID theo alphabet. UUID không có thứ tự thời gian → chọn nhầm Plan của conversation cũ (Airwallex).
+When auto-scanning `implementation_plan.md` in `.gemini/antigravity/brain/`, the code used `sorted(dirs, reverse=True)` to sort UUIDs alphabetically. UUIDs have no chronological order → selected the wrong Plan from an old conversation (Airwallex).
 
 **Fix:** `sorted(dirs, key=lambda p: p.stat().st_mtime, reverse=True)`
 
-**Test thực tế:** Lần đầu audit trả về `🔴 GOAL DRIFT — liên quan Airwallex`. Sau fix → `✅ On-track`.
+**Real-world test:** First audit returned `🔴 GOAL DRIFT — related to Airwallex`. After fix → `✅ On-track`.

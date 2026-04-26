@@ -1,40 +1,40 @@
-# 🛡️ Shadow Scribe — Sổ tay Vận hành (v1.3.0)
+# 🛡️ Shadow Scribe — Operations Manual (v1.3.0)
 
-> File này là **hướng dẫn vận hành duy nhất** cho AI Agent.
-> Nếu bạn là Agent IDE (Antigravity, Cursor, Windsurf, Claude Code), hãy đọc hết file này trước khi hành động.
-> Tài liệu chi tiết hơn: `~/Documents/shadow scribe/README.md`
+> This file is the **sole operations guide** for AI Agents.
+> If you are an IDE Agent (Antigravity, Cursor, Windsurf, Claude Code), read this entire file before taking action.
+> Detailed documentation: `~/Documents/shadow scribe/README.md`
 
 ---
 
-## ⚙️ Nguyên tắc Kiến trúc
+## ⚙️ Architecture Principles
 
 ```
-Agent IDE  = ĐIỀU PHỐI VIÊN — gom file, chạy lệnh, viết brief 15 dòng.
-Watchdog   = BỘ NÃO         — đọc, phân tích, tổng hợp (dùng Gemini Flash).
+IDE Agent  = ORCHESTRATOR — gathers files, runs commands, writes 15-line brief.
+Watchdog   = BRAIN         — reads, analyzes, synthesizes (powered by Gemini Flash).
 ```
 
-⛔ Agent **KHÔNG BAO GIỜ** tự đọc log/conversation rồi tổng hợp thay Watchdog.
+⛔ Agent **NEVER** reads logs/conversations and summarizes on its own — that's Watchdog's job.
 Watchdog script: `~/Documents/shadow scribe/watchdog_scribe.py`
-API Key: tự động load từ file `~/Documents/agent_vault/.env`.
-  *(⚠️ Phải dùng API chính hãng. Tuyệt đối không dùng API proxy trôi nổi để tránh lộ source code/bảo mật)*
+API Key: auto-loaded from `~/Documents/agent_vault/.env`.
+  *(⚠️ Must use official API. Never use leaked/proxy API keys to avoid exposing source code/secrets)*
 
 ---
 
-## 📂 Cấu trúc Vault
+## 📂 Vault Structure
 
 ```
 ~/Documents/agent_vault/
-├── .env                        # GEMINI_API_KEY (auto-load, không cần export)
-├── 00_INDEX_MATRIX.md          # Bảng mục lục vĩnh cửu tất cả sessions
-├── raw_logs/                   # Trạm trung chuyển (tạm, Watchdog đọc xong sẽ dọn)
-│   └── {project-name}/         # Mỗi project 1 thư mục riêng (kebab-case)
-│       ├── session_brief.md    # Agent viết (~15 dòng)
+├── .env                        # GEMINI_API_KEY (auto-loaded, no export needed)
+├── 00_INDEX_MATRIX.md          # Perpetual index of all sessions
+├── raw_logs/                   # Transit station (temp — Watchdog reads then cleans)
+│   └── {project-name}/         # Each project gets its own directory (kebab-case)
+│       ├── session_brief.md    # Agent writes (~15 lines)
 │       └── git_diff.txt        # git diff snapshot
-├── sessions/                   # Full Session Logs (Gemini Flash tổng hợp)
+├── sessions/                   # Full Session Logs (Gemini Flash synthesis)
 │   └── YYYY-MM/DD_MM_YY.md
-├── trash/                      # Soft-Delete — raw_logs backup (tự dọn sau 30 ngày)
-├── artifacts/                  # File nháp, plan, schema gom từ các phiên
-├── digests/                    # Báo cáo tổng hợp từ watchdog digest
+├── trash/                      # Soft-Delete — raw_logs backup (auto-purge after 30 days)
+├── artifacts/                  # Draft files, plans, schemas from sessions
+├── digests/                    # Summary reports from watchdog digest
 └── projects/
     └── {project_name}/
         ├── PROJECT_INDEX.md    # Timeline + Key Decisions
@@ -43,132 +43,132 @@ API Key: tự động load từ file `~/Documents/agent_vault/.env`.
 
 ---
 
-## 🗺️ Mapping Workspace → Project
+## 🗺️ Workspace → Project Mapping
 
-| Workspace (tên folder code) | Project (tên trong vault) |
-|------------------------------|---------------------------|
+| Workspace (code folder name) | Project (vault name) |
+|-------------------------------|----------------------|
 | `shadow-prominence`, `shadow scribe` | `shadow-scribe` |
 | `ai-card-mcp`, `z-zero-dashboard`, `z-zero-mcp` | `z-zero` |
 | `kya-network`, `kya-mcp-server` | `kya-network` |
 
-> Nếu workspace chưa có trong bảng → tạo tên project mới bằng kebab-case, không dùng space.
+> If workspace is not in the table → create a new project name using kebab-case, no spaces.
 
 ---
 
-## 🔄 Workflow mỗi phiên làm việc
+## 🔄 Session Workflow
 
-### Đầu phiên — Nạp Context
+### Start of Session — Load Context
 
-Đọc lần lượt 3 file trước khi làm việc:
-1. `~/Documents/agent_vault/00_INDEX_MATRIX.md` — Xem session gần nhất của dự án
-2. `~/Documents/agent_vault/sessions/{YYYY-MM}/{session mới nhất}.md` — Đọc full log phiên trước
-3. `~/Documents/agent_vault/projects/{project}/adr/ADR_INDEX.md` — Nắm các quyết định kiến trúc đã chốt
+Read these 3 files in order before starting work:
+1. `~/Documents/agent_vault/00_INDEX_MATRIX.md` — Find the latest session for the project
+2. `~/Documents/agent_vault/sessions/{YYYY-MM}/{latest_session}.md` — Read full log from previous session
+3. `~/Documents/agent_vault/projects/{project}/adr/ADR_INDEX.md` — Review locked architecture decisions
 
-Tóm tắt ngắn cho user: đang ở đâu, pending gì, rồi mới bắt đầu code.
+Provide a brief summary to the user: where we are, what's pending, then start coding.
 
-### Trong phiên — Code bình thường
+### During Session — Code as normal
 
-- Ra quyết định kiến trúc quan trọng → Gõ `@adr [tên vấn đề]` (xem mục @adr bên dưới)
-- Muốn kiểm tra giữa giờ → Gõ `audit đi` hoặc bất kỳ lệnh vibe tương đương
+- Making an important architecture decision → Type `@adr [issue name]` (see @adr section below)
+- Want a mid-session check → Type `run audit` or any equivalent vibe command
 
-### Cuối phiên — @dump (3-in-1, tự động)
+### End of Session — @dump (3-in-1, automated)
 
-Khi user gõ `@dump`, `tổng kết đi`, hoặc ý tương tự:
+When user types `@dump`, `summarize`, or similar intent:
 
-**Bước 1:** Chạy lệnh terminal:
+**Step 1:** Run terminal command:
 ```bash
 mkdir -p ~/Documents/agent_vault/raw_logs/{project_name}
 git diff > ~/Documents/agent_vault/raw_logs/{project_name}/git_diff.txt
 ```
 
-**Bước 2:** Viết file `~/Documents/agent_vault/raw_logs/{project_name}/session_brief.md`:
+**Step 2:** Write file `~/Documents/agent_vault/raw_logs/{project_name}/session_brief.md`:
 ```markdown
 # Session Brief
 Date: YYYY-MM-DD
 Project: {project_name}
 Workspace: {workspace_path}
 Conversation ID: {conv_id}
-Plan Path: {path_tới_implementation_plan.md hoặc (none)}
+Plan Path: {path_to_implementation_plan.md or (none)}
 Time: {HH:MM} - {HH:MM}
 
-## FOCUS (Làm gì hôm nay?)
-{Mục tiêu chính 1-2 câu}
+## FOCUS (What was today's goal?)
+{Main objective in 1-2 sentences}
 
-## DONE (Đã hoàn thành)
-- {Action cụ thể}
+## DONE (Completed)
+- {Specific action}
 
-## DECISIONS (Quyết định quan trọng)
-- {Quyết định}: {Lý do}
+## DECISIONS (Key decisions)
+- {Decision}: {Reasoning}
 
-## PIVOTS & DEAD ENDS (Hướng đi đã bỏ)
-- {Hướng AA}: {Lý do bỏ}
+## PIVOTS & DEAD ENDS (Abandoned approaches)
+- {Approach AA}: {Why abandoned}
 
-## BLOOD LESSONS (Lỗi đã gặp & Bài học) ⬅️ BẮT BUỘC
-- {Bug}: {Mô tả} → {Cách fix}
-- (Nếu trơn tru, ghi: "Luồng code trơn tru — không có lỗi.")
+## BLOOD LESSONS (Bugs & Lessons Learned) ⬅️ REQUIRED
+- {Bug}: {Description} → {Fix}
+- (If smooth sailing, write: "Clean run — no issues encountered.")
 
-## RISKS (Rủi ro phát hiện)
+## RISKS (Discovered risks)
 - {Risk}: {Context}
 
-## PENDING (Chưa xong → next session)
-- {Việc chưa xong}
+## PENDING (Unfinished → next session)
+- {Incomplete work}
 
 ## ARTIFACTS DUMPED
-- {tên file} → artifacts/YYYY-MM/{tên file}
-- (none nếu không có)
+- {filename} → artifacts/YYYY-MM/{filename}
+- (none if N/A)
 
-## FILES CHANGED (quan trọng nhất)
-- {path/file.ext} — {mô tả thay đổi}
+## FILES CHANGED (most important)
+- {path/file.ext} — {change description}
 ```
 
-**Bước 3:** Tự động gọi Watchdog (không cần user làm gì):
+**Step 3:** Automatically invoke Watchdog (no user action needed):
 ```bash
 python3 ~/Documents/shadow\ scribe/watchdog_scribe.py scribe
 ```
 
-**Bước 4:** Báo cáo kết quả cho user:
+**Step 4:** Report results to user:
 ```
-✅ Watchdog hoàn tất:
+✅ Watchdog complete:
 - Session Log → sessions/YYYY-MM/DD_MM_YY.md
-- Index đã cập nhật | 🗑️ raw_logs → trash/
-- [Risk nếu có / "Audit Pass" nếu không]
+- Index updated | 🗑️ raw_logs → trash/
+- [Risk if any / "Audit Pass" if clean]
 ```
 
 ---
 
-## 🔍 Watchdog Commands (chạy trên Terminal)
+## 🔍 Watchdog Commands (run in Terminal)
 
-| Lệnh | Chức năng | Loại |
-|-------|----------|------|
-| `watchdog scribe` | Gọi Gemini viết Full Log, cập nhật Index, dọn rác | 🔴 WRITE |
-| `watchdog scribe --mock` | Dry-run: chỉ print, không ghi file | 🟢 READ |
-| `watchdog audit` | Soi Goal Drift ngay lập tức | 🟢 READ |
-| `watchdog audit --plan /path` | Hard Audit với plan chỉ định | 🟢 READ |
-| `watchdog digest` | Tổng hợp tất cả sessions thành báo cáo | 🟡 R+W |
-| `watchdog digest --project NAME` | Filter theo project | 🟡 R+W |
-| `watchdog query <từ_khóa>` | **(Phase 6)** Tìm kiếm nhanh trong Vault — Stage 1 grep, Stage 2 Gemini semantic fallback | 🟢 READ |
-| `watchdog query <từ_khóa> --project NAME` | Filter kết quả theo project | 🟢 READ |
-| `watchdog query <từ_khóa> --smart` | Force Stage 2 Gemini dù Stage 1 đã có kết quả | 🟢 READ |
+| Command | Function | Type |
+|---------|----------|------|
+| `watchdog scribe` | Gemini writes Full Log, updates Index, cleans up | 🔴 WRITE |
+| `watchdog scribe --mock` | Dry-run: print only, no file writes | 🟢 READ |
+| `watchdog audit` | Instant Goal Drift check | 🟢 READ |
+| `watchdog audit --plan /path` | Hard Audit with explicit plan | 🟢 READ |
+| `watchdog digest` | Aggregate all sessions into report | 🟡 R+W |
+| `watchdog digest --project NAME` | Filter by project | 🟡 R+W |
+| `watchdog query <keyword>` | **(Phase 6)** Search vault — Stage 1 grep, Stage 2 Gemini fallback | 🟢 READ |
+| `watchdog query <keyword> --project NAME` | Filter results by project | 🟢 READ |
+| `watchdog query <keyword> --smart` | Force Stage 2 Gemini even if Stage 1 has results | 🟢 READ |
 
-> Lệnh thật khi chạy trên terminal:
+> Actual terminal command:
 > `python3 ~/Documents/shadow\ scribe/watchdog_scribe.py {command} [flags]`
 
 ---
 
-## 🗺️ @adr — Ghi ADR ngay lúc ra quyết định
+## 🗺️ @adr — Record ADR at Decision Time
 
-Khi user gõ `@adr [tên vấn đề]`:
+When user types `@adr [issue name]`:
 
-1. Đọc `~/Documents/agent_vault/projects/{project}/adr/ADR_INDEX.md` → lấy số ADR tiếp theo
-2. Tạo file `~/Documents/agent_vault/projects/{project}/adr/NNN_{ten_snake_case}.md`
-3. Dùng template: Context → Quyết định đã chọn → Đường loại bỏ → Đường tiềm năng → Ma trận so sánh
-4. Cập nhật `ADR_INDEX.md`
+1. Read `~/Documents/agent_vault/projects/{project}/adr/ADR_INDEX.md` → get next ADR number
+2. Create file `~/Documents/agent_vault/projects/{project}/adr/NNN_{snake_case_name}.md`
+3. Use template: Context → Chosen Path → Rejected Paths → Potential Paths → Comparison Matrix
+4. Update `ADR_INDEX.md`
 
 ---
 
-## ♻️ Retroactive Dump (dump bù khi quên)
+## ♻️ Retroactive Dump (catching up on missed days)
 
-Nếu user quên dump 1-2 ngày:
-- Dùng `git log --since="{ngày}"` để gom code changes → viết brief → chạy watchdog
-- Nếu user cung cấp conversation log → copy vào `raw_logs/{project}/` → gọi watchdog
-- Lưu ý: **Watchdog đọc**, không phải Agent. Agent chỉ copy file và chạy lệnh.
+If user forgot to dump for 1-2 days:
+- Use `git log --since="{date}"` to gather code changes → write brief → run watchdog
+- If user provides conversation log → copy into `raw_logs/{project}/` → invoke watchdog
+- Remember: **Watchdog reads**, not Agent. Agent only copies files and runs commands.

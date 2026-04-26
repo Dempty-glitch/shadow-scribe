@@ -2,147 +2,147 @@
 
 | Field | Value |
 |-------|-------|
-| **Ngày tạo** | 25/04/2026 |
+| **Date** | 25/04/2026 |
 | **Project** | shadow-scribe |
 | **Status** | ✅ IMPLEMENTED |
-| **Plan liên quan** | (sẽ tạo `plans/v1.3.0_phase6.md` sau khi sign-off) |
+| **Related Plan** | (see `plans/v1.3.0_phase6.md` when created) |
 | **Implementation ADR** | ADR-007 |
 | **Author** | Claude Opus 4.7 (independent reviewer agent) |
 
-> **Next status flip:** ACCEPTED khi user sign-off → IMPLEMENTED khi `watchdog query` ship trong v1.3.0.
+> **Next status flip:** ACCEPTED on user sign-off → IMPLEMENTED when `watchdog query` ships in v1.3.0.
 
 ---
 
-## Context (Bài toán)
+## Context
 
-Vault hiện có ~15 sessions (sau 2 tuần dùng), pace ~270/tháng theo usage thực tế (3-4 project active, ~3 session/ngày/project). **Cold-start problem** ngày càng đau:
+The vault currently has ~15 sessions (after 2 weeks of use), with a pace of ~270/month based on actual usage (3-4 active projects, ~3 sessions/day/project). The **cold-start problem** is increasingly painful:
 
-- Quay lại project sau 2-3 tuần → quên decisions cụ thể (vd: "tại sao chọn `fcntl.flock` không phải `threading.Lock`?")
-- `watchdog digest` cho summary nhưng KHÔNG retrieve được câu hỏi cụ thể — phải đọc cả digest
-- Phải mở từng file ADR/session bằng tay → tốn thời gian + token
+- Returning to a project after 2-3 weeks → forget specific decisions (e.g., "why did we choose `fcntl.flock` over `threading.Lock`?")
+- `watchdog digest` provides summaries but CANNOT retrieve answers to specific questions — must read the entire digest
+- Must open individual ADR/session files manually → wastes time + tokens
 
-**Trigger thực tế:** User muốn `watchdog query "atomic write decision"` → trả về context relevant trong < 1 giây.
+**Actual trigger:** User wants `watchdog query "atomic write decision"` → return relevant context in < 1 second.
 
-**Constraint cốt lõi (kế thừa từ ADR-001):** Zero-dependency. Không SQLite, không ChromaDB, không embedding model.
+**Core constraint (inherited from ADR-001):** Zero-dependency. No SQLite, no ChromaDB, no embedding model.
 
-**Ghi chú quan trọng về scope:** Cấu trúc lưu trữ 3-layer (INDEX_MATRIX → sessions → ADR) đã được thiết kế từ ADR-001/002/003. Phase 6 **KHÔNG thay đổi cấu trúc**, chỉ thêm query layer khai thác cấu trúc đã có.
+**Important scope note:** The 3-layer storage structure (INDEX_MATRIX → sessions → ADR) was designed in ADR-001/002/003. Phase 6 **does NOT change the structure**, it only adds a query layer that exploits the existing structure.
 
 ---
 
-## 📍 Quyết định (The Chosen Path)
+## 📍 Decision (The Chosen Path)
 
-> **Chọn: Lightweight Agentic RAG** — đạt agentic behavior ở cost của Naive RAG.
+> **Chosen: Lightweight Agentic RAG** — achieve agentic behavior at Naive RAG cost.
 
-### Phân loại theo industry taxonomy (2025-2026)
+### Classification per industry taxonomy (2025-2026)
 
 | RAG Type | Latency | Cost/Query | Phase 6 fit? |
 |----------|---------|-----------|--------------|
-| Naive RAG | 300ms | $0.005 | ❌ Single-shot, không có agent decision |
-| Advanced RAG | 1250ms | $0.0175 | ⚠️ Có rerank nhưng không có query rewriting/HyDE |
-| GraphRAG | 3000ms | $0.085 | ❌ Không build knowledge graph riêng |
-| Full Agentic RAG | 6000ms | $0.055 | ✅ Đúng category về behavior |
-| **Phase 6 (Lightweight Agentic)** | **~500ms** | **~$0.001** | ✅ **Đạt agentic ở Naive cost** |
+| Naive RAG | 300ms | $0.005 | ❌ Single-shot, no agent decision |
+| Advanced RAG | 1250ms | $0.0175 | ⚠️ Has rerank but no query rewriting/HyDE |
+| GraphRAG | 3000ms | $0.085 | ❌ No separate knowledge graph built |
+| Full Agentic RAG | 6000ms | $0.055 | ✅ Correct category by behavior |
+| **Phase 6 (Lightweight Agentic)** | **~500ms** | **~$0.001** | ✅ **Agentic at Naive cost** |
 
-### Vì sao gọi là "Lightweight Agentic"
+### Why "Lightweight Agentic"
 
-- **Agentic element:** Agent quyết định query Layer 1 → đủ thì dừng, chưa đủ thì descend Layer 2 → cần root thì descend Layer 3. Không phải single-shot.
-- **Lightweight element:** Không có multi-step reasoning loop kéo dài (như full Agentic 6000ms). Mỗi query = 1-2 round trips, shallow nhưng có agentic decision.
+- **Agentic element:** Agent decides to query Layer 1 → sufficient then stop, insufficient then descend to Layer 2 → needs root cause then descend to Layer 3. Not single-shot.
+- **Lightweight element:** No multi-step reasoning loops (like full Agentic 6000ms). Each query = 1-2 round trips, shallow but with agentic decision-making.
 
 ### USP (Unique Selling Point)
 
-> **Đạt agentic behavior ở cost của Naive RAG vì tận dụng human-curated INDEX.**
+> **Achieves agentic behavior at Naive RAG cost by leveraging human-curated INDEX.**
 
-Mỗi session brief đã có TL;DR + tags do người (hoặc agent) viết — INDEX_MATRIX trở thành "human-curated semantic index". Không cần auto-embedding vì semantics đã được encode bằng natural language tags.
+Every session brief already has TL;DR + tags written by a human (or agent) — INDEX_MATRIX becomes a "human-curated semantic index". No auto-embedding needed because semantics are already encoded in natural language tags.
 
 ---
 
-## 🚫 Các con đường đã loại bỏ (Rejected Paths)
+## 🚫 Rejected Paths
 
 ### ❌ Vector RAG (ChromaDB / SQLite + embeddings)
-- **Lý do chính:** Vi phạm zero-dep principle (kế thừa từ ADR-001). Cần `pip install` + embedding model.
-- **Cost ẩn:** Re-index mỗi khi sửa file, black-box debug, không hiển thị được "tại sao tìm ra kết quả này".
-- **Khi nào nên dùng:** Vault > 10K documents không có human curation. Hiện tại chưa.
+- **Primary reason:** Violates zero-dep principle (inherited from ADR-001). Requires `pip install` + embedding model.
+- **Hidden cost:** Re-index on every file edit, black-box debugging, can't display "why this result was found".
+- **When to use:** Vault > 10K documents without human curation. Not there yet.
 
 ### ❌ Naive RAG (single-shot grep, dump full)
-- **Lý do:** Không có agent decision → thường trả quá nhiều hoặc quá ít. Tràn context khi grep match nhiều files.
-- **Cụ thể:** `grep "atomic" sessions/` trả về 20 hits không xếp hạng → agent phải đọc hết.
+- **Reason:** No agent decision → usually returns too many or too few results. Context overflow when grep matches many files.
+- **Specifically:** `grep "atomic" sessions/` returns 20 unranked hits → agent must read all of them.
 
-### ❌ GraphRAG (build knowledge graph riêng)
-- **Lý do:** INDEX_MATRIX đã là pseudo-graph (mỗi row link tới session, ADR, artifacts). Build graph riêng = duplicate data + maintenance burden.
-- **Cost:** Cần re-build graph mỗi khi có session mới.
+### ❌ GraphRAG (build separate knowledge graph)
+- **Reason:** INDEX_MATRIX is already a pseudo-graph (each row links to session, ADR, artifacts). Building a separate graph = duplicate data + maintenance burden.
+- **Cost:** Must re-build graph whenever a new session arrives.
 
 ### ❌ Full Agentic RAG (multi-step reasoning loops)
-- **Lý do:** Latency 6000ms không acceptable cho cold-start use case. User muốn câu trả lời nhanh, không phải dialog dài.
-- **Cost:** $0.055/query × 10 queries/ngày = $16/tháng — overkill cho personal use.
+- **Reason:** 6000ms latency is not acceptable for cold-start use case. User wants quick answers, not long dialogs.
+- **Cost:** $0.055/query × 10 queries/day = $16/month — overkill for personal use.
 
-### ❌ Tự build embedding pipeline với Gemini
-- **Lý do:** Gemini có embedding API nhưng vẫn cần lưu trữ vector → cần SQLite/file format → vi phạm zero-dep.
+### ❌ Self-build embedding pipeline with Gemini
+- **Reason:** Gemini has an embedding API but still needs vector storage → requires SQLite/file format → violates zero-dep.
 
 ---
 
-## ⚠️ Trade-offs chấp nhận
+## ⚠️ Accepted Trade-offs
 
-| Trade-off | Mức độ | Lý do chấp nhận |
-|-----------|--------|-----------------|
-| Sparse search cần keyword chính xác hơn vector | 🟡 MED | Bù bằng Stage 2 LLM rerank (chi tiết ADR-007) khi grep < N hits hoặc keyword mơ hồ |
-| Phụ thuộc chất lượng tagging của INDEX_MATRIX | 🟡 MED | Watchdog scribe đã enforce TL;DR + tags trong brief format. Chất lượng tăng theo discipline. |
-| Không fuzzy match ("payment" → "billing") | 🟢 LOW | Stage 2 LLM rerank giải quyết. Test thực tế khi vault > 50 sessions. |
-| Phụ thuộc Gemini API (Stage 2) | 🟢 LOW | Đã có sẵn từ Phase 1. Không thêm dep mới. |
-| Stage 1 grep linear-scan → chậm khi vault > 5K sessions | 🟢 LOW | Hiện 15 sessions, ~270/tháng → 5K rows = ~18 tháng. Khi đó add markdown index file (vẫn không Vector DB). |
+| Trade-off | Severity | Justification |
+|-----------|----------|---------------|
+| Sparse search needs more precise keywords than vector | 🟡 MED | Compensated by Stage 2 LLM rerank (details in ADR-007) when grep < N hits or keyword is vague |
+| Depends on INDEX_MATRIX tagging quality | 🟡 MED | Watchdog scribe enforces TL;DR + tags in brief format. Quality improves with discipline. |
+| No fuzzy match ("payment" → "billing") | 🟢 LOW | Stage 2 LLM rerank handles this. Test with real data when vault > 50 sessions. |
+| Depends on Gemini API (Stage 2) | 🟢 LOW | Already available since Phase 1. No new dependency added. |
+| Stage 1 grep linear-scan → slow when vault > 5K sessions | 🟢 LOW | Currently 15 sessions, ~270/month → 5K rows = ~18 months. At that point, add pre-built markdown index (still no Vector DB). |
 
 ---
 
 ## 📊 Success Metrics
 
-> Đo sau khi v1.3.0 ship 2 tuần dùng thực tế.
+> Measure after v1.3.0 ships, following 2 weeks of real usage.
 
 | Metric | Baseline (v1.2.2) | Target (v1.3.0) |
 |--------|-------------------|-----------------|
-| Cold-start time (mở session mới, agent có context) | ~5 phút (manual mớm) | < 30 giây (`watchdog query`) |
+| Cold-start time (new session, agent has context) | ~5 min (manual prompting) | < 30 sec (`watchdog query`) |
 | Avg query latency (Stage 1 only) | N/A | < 100ms |
 | Avg query latency (Stage 2 fallback) | N/A | < 1500ms |
 | Cost per query (avg) | N/A | < $0.002 |
-| Stage 2 fallback rate | N/A | < 30% (nếu cao hơn → tagging discipline kém, cần improve) |
+| Stage 2 fallback rate | N/A | < 30% (if higher → tagging discipline is poor, needs improvement) |
 | User-reported "found what I need" | N/A | ≥ 80% sessions |
 
 ---
 
 ## 🔄 Rollback Plan
 
-- **Non-destructive:** Phase 6 chỉ ADD subcommand `watchdog query`, không thay đổi `scribe`/`audit`/`digest`
-- **Rollback đơn giản:** Gỡ subcommand → vault structure không bị ảnh hưởng (read-only operation)
-- **Tag anchor:** `v1.2.2` (đã tag) làm rollback target nếu v1.3.0 fail
+- **Non-destructive:** Phase 6 only ADDs subcommand `watchdog query`, does not change `scribe`/`audit`/`digest`
+- **Simple rollback:** Remove subcommand → vault structure unaffected (read-only operation)
+- **Tag anchor:** `v1.2.2` (already tagged) serves as rollback target if v1.3.0 fails
 
 ---
 
 ## 🔮 Consequences
 
-### Tích cực
-- **Cold-start solved:** Agent tự query thay vì user mớm context
-- **INDEX_MATRIX upgrade:** Trở thành "human-curated semantic index" có giá trị tăng dần theo session
-- **Cross-project query:** Query span được z-zero, kya-network, shadow-scribe trong cùng vault — value tăng khi multi-project
-- **Validates hypothesis:** "Structured markdown + LLM rerank = đủ thay vector DB ở scale này" — pattern có thể export sau
+### Positive
+- **Cold-start solved:** Agent queries on its own instead of user manually feeding context
+- **INDEX_MATRIX upgrade:** Becomes a "human-curated semantic index" with value growing per session
+- **Cross-project query:** Queries span z-zero, kya-network, shadow-scribe within the same vault — value increases with multi-project usage
+- **Validates hypothesis:** "Structured markdown + LLM rerank = sufficient replacement for vector DB at this scale" — pattern exportable later
 
-### Tiêu cực / Rủi ro
-- **Tagging discipline:** Phải maintain — nếu lười tag → query precision giảm. Mitigated bằng scribe prompt enforce.
-- **Stage 2 fallback rate là KPI cần monitor** — nếu > 50% nghĩa là Stage 1 không hoạt động hiệu quả → cần review tagging hoặc thêm query rewriting
+### Negative / Risks
+- **Tagging discipline:** Must be maintained — lazy tagging → query precision drops. Mitigated by scribe prompt enforcement.
+- **Stage 2 fallback rate is a KPI to monitor** — if > 50%, Stage 1 isn't working effectively → need to review tagging or add query rewriting
 
 ### Long-term implication
-- Khi vault > 5K sessions, Stage 1 grep có thể chậm → lúc đó add markdown index file pre-built (vẫn không Vector DB)
-- Pattern này có thể export thành standalone tool cho người dùng Obsidian/Logseq sau này
+- When vault > 5K sessions, Stage 1 grep may slow down → at that point, add pre-built markdown index file (still no Vector DB)
+- This pattern could be exported as a standalone tool for Obsidian/Logseq users in the future
 
 ---
 
-## 📊 Ma trận so sánh
+## 📊 Comparison Matrix
 
-| Tiêu chí | Vector RAG ❌ | Naive RAG ❌ | Full Agentic ❌ | **Lightweight Agentic ✅** |
-|----------|---------------|---------------|------------------|-----------------------------|
+| Criteria | Vector RAG ❌ | Naive RAG ❌ | Full Agentic ❌ | **Lightweight Agentic ✅** |
+|----------|---------------|---------------|------------------|---------------------------|
 | Zero-dep | ❌ | ✅ | ⚠️ | **✅** |
 | Cost/query | $0.0175 | $0.005 | $0.055 | **$0.001** |
 | Latency | 1250ms | 300ms | 6000ms | **~500ms** |
 | Agent decision | ❌ | ❌ | ✅ | **✅** |
 | Debug transparency | ❌ (black box) | ✅ | ⚠️ | **✅** |
-| Vault scale phù hợp | 10K+ docs | < 100 docs | bất kỳ | **100-5K docs** ← chúng ta đang ở đây |
+| Vault scale fit | 10K+ docs | < 100 docs | any | **100-5K docs** ← we are here |
 
 ---
 
@@ -154,8 +154,8 @@ Mỗi session brief đã có TL;DR + tags do người (hoặc agent) viết — 
 
 ### Architectural foundation (existing)
 - ADR-001: Watchdog Architecture (vault folder structure 3-layer)
-- ADR-002: Dual-Tier Audit (separation scribe/audit, Phase 6 sẽ thêm tier query)
-- ADR-003: Digest Architecture (INDEX rows format — base cho query parser)
+- ADR-002: Dual-Tier Audit (separation scribe/audit, Phase 6 adds query tier)
+- ADR-003: Digest Architecture (INDEX row format — base for query parser)
 
 ### Implementation details
-- Xem ADR-007: cách thực thi cụ thể (Parent-Child Retrieval + Sparse-LLM Hybrid Reranking)
+- See ADR-007: specific implementation (Parent-Child Retrieval + Sparse-LLM Hybrid Reranking)
