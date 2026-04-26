@@ -3,7 +3,8 @@
 > **The Execution Brain & Shadow Scribe Architecture.**  
 > Hệ thống Quản trị Tri thức, Giám sát và Kiểm toán (Audit) vĩnh cửu dành cho AI Agents (Cursor, Windsurf, Antigravity).
 
-[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)]()
+[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)]()
+[![CI](https://github.com/Dempty-glitch/shadow-scribe/actions/workflows/ci.yml/badge.svg)](https://github.com/Dempty-glitch/shadow-scribe/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-%E2%89%A5%203.9-brightgreen.svg)]()
 [![Zero Dependency](https://img.shields.io/badge/dependencies-0-success.svg)]()
 [![Powered by Gemini](https://img.shields.io/badge/Powered%20by-Gemini%202.5%20Flash-orange.svg)]()
