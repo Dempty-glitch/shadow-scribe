@@ -24,6 +24,8 @@ import re
 from pathlib import Path
 from datetime import datetime
 
+import pytest
+
 # Thêm parent dir vào path để import từ watchdog_scribe
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from shadow_scribe.config import get_gemini_model, get_gemini_api_key
@@ -35,6 +37,12 @@ GEMINI_API_KEY = get_gemini_api_key()
 GEMINI_MODEL = get_gemini_model()
 
 MOCK_MODE = "--mock" in sys.argv
+
+# Skip marker for tests that require live Gemini API
+requires_gemini = pytest.mark.skipif(
+    not os.environ.get("GEMINI_API_KEY"),
+    reason="Requires GEMINI_API_KEY (live Gemini call). Use: python3 tests/test_audit_quality.py --mock"
+)
 
 # ─── TEST DATA ────────────────────────────────────────────────────────────────
 
@@ -153,6 +161,7 @@ def is_missed_drift(response: str) -> bool:
 
 # ─── TESTS ────────────────────────────────────────────────────────────────────
 
+@requires_gemini
 def test_p13_known_good_sessions():
     """
     P13 Self-test: Chạy audit trên session logs thật đã ship thành công.
@@ -190,6 +199,7 @@ def test_p13_known_good_sessions():
     return pass_rate
 
 
+@requires_gemini
 def test_synthetic_on_track():
     """
     Audit case on-track rõ ràng → phải trả ✅.
@@ -206,6 +216,7 @@ def test_synthetic_on_track():
     return True
 
 
+@requires_gemini
 def test_synthetic_drift_1():
     """
     Audit case drift rõ ràng (plan=retry, diff=Telegram) → phải trả 🔴.
@@ -222,6 +233,7 @@ def test_synthetic_drift_1():
     return True
 
 
+@requires_gemini
 def test_synthetic_drift_2():
     """
     Audit case drift (plan=zero-dep, diff=pydantic/requests) → phải trả 🔴.

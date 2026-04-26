@@ -3,7 +3,7 @@
 > **The Execution Brain & Shadow Scribe Architecture.**  
 > Hệ thống Quản trị Tri thức, Giám sát và Kiểm toán (Audit) vĩnh cửu dành cho AI Agents (Cursor, Windsurf, Antigravity).
 
-[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)]()
+[![Version](https://img.shields.io/badge/version-1.3.2-blue.svg)]()
 [![CI](https://github.com/Dempty-glitch/shadow-scribe/actions/workflows/ci.yml/badge.svg)](https://github.com/Dempty-glitch/shadow-scribe/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-%E2%89%A5%203.9-brightgreen.svg)]()
 [![Zero Dependency](https://img.shields.io/badge/dependencies-0-success.svg)]()
@@ -221,8 +221,8 @@ git show HEAD > ~/Documents/agent_vault/raw_logs/{project-name}/git_diff.txt
 |------|----------|-------|
 | `GEMINI_API_KEY` | *(required)* | Google AI API Key — [lấy miễn phí tại đây](https://aistudio.google.com/). Lưu tại `~/Documents/agent_vault/.env` |
 | `SHADOW_SCRIBE_LANG` | `vi` | Ngôn ngữ output của Gemini (`vi` hoặc `en`). Áp dụng cho session logs, audit, digest, và query. |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Model dùng cho scribe + audit + digest + query |
-| `VAULT_DIR` | `~/Documents/agent_vault/` | Root của vault |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Model dùng cho scribe + audit + digest + query. Allowlist: `gemini-2.5-flash`, `gemini-2.5-pro`. Giá trị lạ bị từ chối. |
+| `SHADOW_SCRIBE_VAULT_DIR` | `~/Documents/agent_vault/` | Root của vault. ⚠️ **Chỉ set ở shell** — phải `export` trước khi chạy watchdog. Không thể đặt trong `.env` (vì `.env` nằm bên trong vault). |
 
 > 💡 **Mẹo:** Bạn không cần export biến môi trường. Watchdog sẽ tự đọc file `~/Documents/agent_vault/.env`.
 > 💡 **Self-Cleaning:** Thư mục `trash/` sẽ tự động dọn các file cũ hơn 30 ngày mỗi lần bạn chạy watchdog.

@@ -5,7 +5,7 @@
 > **The Execution Brain & Shadow Scribe Architecture.**  
 > A perpetual Knowledge Management, Monitoring, and Audit system for AI Agents (Cursor, Windsurf, Claude Code, Antigravity).
 
-[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)]()
+[![Version](https://img.shields.io/badge/version-1.3.2-blue.svg)]()
 [![CI](https://github.com/Dempty-glitch/shadow-scribe/actions/workflows/ci.yml/badge.svg)](https://github.com/Dempty-glitch/shadow-scribe/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-%E2%89%A5%203.9-brightgreen.svg)]()
 [![Zero Dependency](https://img.shields.io/badge/dependencies-0-success.svg)]()
@@ -229,8 +229,8 @@ git show HEAD > ~/Documents/agent_vault/raw_logs/{project-name}/git_diff.txt
 |----------|---------|-------------|
 | `GEMINI_API_KEY` | *(required)* | Google AI API Key — [get free here](https://aistudio.google.com/). Stored at `~/Documents/agent_vault/.env` |
 | `SHADOW_SCRIBE_LANG` | `vi` | Language for Gemini-generated content (`vi` or `en`). Affects session logs, audit reports, digests, and query rerank. |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Model used for scribe + audit + digest + query |
-| `VAULT_DIR` | `~/Documents/agent_vault/` | Vault root directory |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Model used for scribe + audit + digest + query. Allowlist: `gemini-2.5-flash`, `gemini-2.5-pro`. Unknown values are rejected. |
+| `SHADOW_SCRIBE_VAULT_DIR` | `~/Documents/agent_vault/` | Vault root directory. ⚠️ **Shell-level only** — must be `export`ed before running watchdog. Cannot be set via `.env` (chicken-and-egg: `.env` lives inside the vault). |
 
 > 💡 **Tip:** No need to export environment variables. Watchdog auto-reads `~/Documents/agent_vault/.env`.  
 > 💡 **Self-Cleaning:** The `trash/` directory auto-purges files older than 30 days on every watchdog run.

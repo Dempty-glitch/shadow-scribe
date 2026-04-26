@@ -165,3 +165,80 @@ def test_call_gemini_uses_en_prompt_when_lang_en(monkeypatch):
     assert "Mục tiêu" not in sent_prompt, "VN heading leaked into EN prompt"
     # Assert at least one EN keyword present
     assert any(kw in sent_prompt for kw in ["Objective", "Goal", "Decisions"]), "EN prompt missing expected headings"
+
+
+# ─── _resolve_vault_dir tests ─────────────────────────────────────────────────
+
+def test_resolve_vault_dir_default(monkeypatch):
+    """No env var → default ~/Documents/agent_vault."""
+    monkeypatch.delenv("SHADOW_SCRIBE_VAULT_DIR", raising=False)
+    from shadow_scribe.config import _resolve_vault_dir
+    result = _resolve_vault_dir()
+    from pathlib import Path
+    assert result == Path.home() / "Documents" / "agent_vault"
+
+
+def test_resolve_vault_dir_override(monkeypatch, tmp_path):
+    """ENV set → uses custom path."""
+    custom = str(tmp_path / "custom_vault")
+    monkeypatch.setenv("SHADOW_SCRIBE_VAULT_DIR", custom)
+    from shadow_scribe.config import _resolve_vault_dir
+    result = _resolve_vault_dir()
+    from pathlib import Path
+    assert result == Path(custom).resolve()
+
+
+def test_resolve_vault_dir_tilde(monkeypatch):
+    """ENV with ~ → expands to home dir."""
+    monkeypatch.setenv("SHADOW_SCRIBE_VAULT_DIR", "~/my_vault")
+    from shadow_scribe.config import _resolve_vault_dir
+    result = _resolve_vault_dir()
+    from pathlib import Path
+    assert result == Path.home() / "my_vault"
+
+
+def test_resolve_vault_dir_empty_string(monkeypatch):
+    """ENV = empty string → treated as unset, uses default."""
+    monkeypatch.setenv("SHADOW_SCRIBE_VAULT_DIR", "   ")
+    from shadow_scribe.config import _resolve_vault_dir
+    result = _resolve_vault_dir()
+    from pathlib import Path
+    assert result == Path.home() / "Documents" / "agent_vault"
+
+
+# ─── get_gemini_model allowlist tests ─────────────────────────────────────────
+
+def test_gemini_model_default(monkeypatch):
+    """No env var → gemini-2.5-flash."""
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+    from shadow_scribe.config import get_gemini_model
+    assert get_gemini_model() == "gemini-2.5-flash"
+
+
+def test_gemini_model_allowed_pro(monkeypatch):
+    """ENV=gemini-2.5-pro → accepted (in allowlist)."""
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-2.5-pro")
+    from shadow_scribe.config import get_gemini_model
+    assert get_gemini_model() == "gemini-2.5-pro"
+
+
+def test_gemini_model_allowed_flash(monkeypatch):
+    """ENV=gemini-2.5-flash → accepted (in allowlist)."""
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-2.5-flash")
+    from shadow_scribe.config import get_gemini_model
+    assert get_gemini_model() == "gemini-2.5-flash"
+
+
+def test_gemini_model_rejected_leaked(monkeypatch):
+    """ENV=gemini-3.1-pro (leaked from IDE) → rejected, fallback to flash."""
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.1-pro")
+    from shadow_scribe.config import get_gemini_model
+    assert get_gemini_model() == "gemini-2.5-flash"
+
+
+def test_gemini_model_rejected_garbage(monkeypatch):
+    """ENV=random-garbage → rejected, fallback to flash."""
+    monkeypatch.setenv("GEMINI_MODEL", "gpt-4o-mini")
+    from shadow_scribe.config import get_gemini_model
+    assert get_gemini_model() == "gemini-2.5-flash"
+

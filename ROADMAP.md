@@ -137,6 +137,13 @@
 
 ---
 
+### Phase 7 — PyPI Package & Custom IDE Skills *(DROPPED)*
+**Status:** ❌ Dropped — Conflicts with the **Agent-Native** paradigm.
+- **PyPI:** Agents are perfectly capable of cloning git repositories and running setup scripts. Publishing to PyPI introduces traditional software tech debt (versioning, wheel building, dependency management) for zero operational gain for an AI agent.
+- **Custom Skills (`.claude/commands/`):** Forces the human user to memorize strict CLI-like syntax (e.g., `/dump`, `/adr`). True NLP capability means the user can just "vibe" (e.g., "dump for me", "let's adr this") and the agent will read `GUIDE.md` to map intent to action natively.
+
+---
+
 ## 📊 Status Overview
 
 | Phase | Description | Status | Version |
@@ -151,3 +158,4 @@
 | 3.6 | i18n: ENV-Based Language Switch | ✅ Done | 1.3.1 |
 | 4 | Telegram Integration | ⏸ Pending | — |
 | 5 | ~~Internal Monologue~~ | ❌ Dropped (skill layer, out of scope) | — |
+| 7 | ~~PyPI & Custom Skills~~ | ❌ Dropped (Agent-Native philosophy) | — |

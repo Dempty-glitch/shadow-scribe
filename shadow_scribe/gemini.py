@@ -117,8 +117,10 @@ def call_gemini(brief: str, diff: str, plan: str = "") -> str:
     hard_audit_instruction = HARD_AUDIT_INSTRUCTION_EN if lang == "en" else HARD_AUDIT_INSTRUCTION_VI
 
     if not api_key:
-        print("❌ GEMINI_API_KEY is not set. Export the environment variable first:")
-        print("   export GEMINI_API_KEY=your_key_here")
+        print("❌ GEMINI_API_KEY is not set.")
+        print("   Add it to: ~/Documents/agent_vault/.env")
+        print("   Format:    GEMINI_API_KEY=your_key_here")
+        print("   Get a key: https://aistudio.google.com/")
         sys.exit(1)
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
