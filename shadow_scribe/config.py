@@ -53,7 +53,7 @@ def get_gemini_model() -> str:
 
 def get_lang() -> str:
     """Read SHADOW_SCRIBE_LANG env var. Returns 'vi' (default) or 'en'.
-    
+
     Invalid values silently fall back to 'vi' with a warning.
     """
     lang = os.environ.get("SHADOW_SCRIBE_LANG", "vi").lower()

@@ -112,7 +112,7 @@ def call_gemini(brief: str, diff: str, plan: str = "") -> str:
     api_key = get_gemini_api_key()
     model = get_gemini_model()
     lang = get_lang()
-    
+
     system_prompt = SYSTEM_PROMPT_EN if lang == "en" else SYSTEM_PROMPT_VI
     hard_audit_instruction = HARD_AUDIT_INSTRUCTION_EN if lang == "en" else HARD_AUDIT_INSTRUCTION_VI
 
@@ -161,7 +161,7 @@ def call_gemini_audit(diff: str, plan: str) -> str:
     api_key = get_gemini_api_key()
     model = get_gemini_model()
     lang = get_lang()
-    
+
     audit_prompt = AUDIT_PROMPT_EN if lang == "en" else AUDIT_PROMPT_VI
 
     if not api_key:
@@ -196,7 +196,7 @@ def call_gemini_query(keyword: str, index_content: str) -> str:
     api_key = get_gemini_api_key()
     model = get_gemini_model()
     lang = get_lang()
-    
+
     query_prompt = QUERY_PROMPT_EN if lang == "en" else QUERY_PROMPT_VI
 
     if not api_key:
