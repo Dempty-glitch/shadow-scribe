@@ -42,6 +42,7 @@ Các AI IDE hiện nay đều mắc chung 2 căn bệnh chí mạng:
 - 🗄️ **Persistent Knowledge Matrix:** Mọi phiên làm việc được nén thành Markdown chuẩn và liên kết trong `00_INDEX_MATRIX.md`.
 - 📊 **Project Digest:** Tổng hợp N session logs thành báo cáo tiến độ, filter theo project và khoảng thời gian.
 - 🛡️ **Bulletproof I/O:** Chống ghi đè file, tự truncate nếu vượt 900K chars, tự fallback `git diff HEAD~1` nếu không có staged changes.
+- 📐 **Three-Layer Knowledge:** INTENT (ranh giới dự án, con người viết) → CRYSTAL (bản đồ kiến trúc tự render từ codebase) → INDEX (lịch sử phiên, append-only). Mỗi lớp một chủ sở hữu, một chiều, không vòng lặp. ([ADR-009](docs/adr/009_dual_state_crystal_architecture.md))
 
 ---
 

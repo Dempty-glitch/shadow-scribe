@@ -45,6 +45,7 @@ Modern AI IDEs all suffer from the same two fatal diseases:
 - 📊 **Project Digest:** Aggregates N session logs into a progress report, filtered by project and time range.
 - 🔍 **Lightweight Agentic RAG:** `watchdog query` searches the vault using 2-stage retrieval — Stage 1 grep (fast, free) → Stage 2 Gemini semantic rerank (smart fallback).
 - 🛡️ **Bulletproof I/O:** File overwrite protection, auto-truncation at 900K chars, `git diff HEAD~1` fallback if no staged changes.
+- 📐 **Three-Layer Knowledge:** INTENT (human-written project boundaries) → CRYSTAL (auto-rendered architecture map from codebase) → INDEX (append-only session history). Each layer has one owner, one direction, no cycles. ([ADR-009](docs/adr/009_dual_state_crystal_architecture.md))
 
 > 💡 **Bilingual:** Session logs default to Vietnamese. Set `SHADOW_SCRIBE_LANG=en` in `~/Documents/agent_vault/.env` to switch to English. (Existing logs are not auto-translated.)
 
