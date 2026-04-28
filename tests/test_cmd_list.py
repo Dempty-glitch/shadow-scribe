@@ -92,6 +92,21 @@ def test_filter_since_excludes_unparseable_date():
     assert result == []  # unparseable date → excluded when since filter active
 
 
+def test_filter_since_reads_year_from_session_link():
+    """Year must be parsed from session_link path, not hardcoded.
+
+    Regression: year-bomb — hardcoded '2026' breaks --since in 2027+.
+    A row from sessions/2027-03/... must be included by --since 2027-01-01.
+    """
+    from shadow_scribe.cmd_query import _parse_index_rows
+    future_row = "| 15/03 | shadow-scribe | shadow scribe | Some 2027 work | [→](sessions/2027-03/15_03_27.md) | — | #build |"
+    matrix = "\n".join([_HEADER, _SEP, future_row])
+    rows = _parse_index_rows(matrix)
+    # With hardcoded 2026: row_iso = "2026-03-15" < "2027-01-01" → wrongly excluded
+    result = _filter_list_rows(rows, project=None, since="2027-01-01", tag=None)
+    assert len(result) == 1  # must be INCLUDED (row is from 2027-03)
+
+
 def test_filter_no_match():
     """--project foo → empty."""
     from shadow_scribe.cmd_query import _parse_index_rows

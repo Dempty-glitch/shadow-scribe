@@ -7,6 +7,7 @@ Flags: --project (substring) --since (YYYY-MM-DD) --tag (substring) --top N
 All flags = AND. No flags = list all (capped by --top).
 """
 
+import re
 import sys
 from typing import Optional
 
@@ -28,14 +29,19 @@ def _filter_list_rows(
         if tag and tag.lower() not in row.tags.lower():
             continue
         if since:
-            # Date column is DD/MM, convert to YYYY-MM-DD for ISO compare
+            # Parse year from session_link: "[→](sessions/YYYY-MM/...)"
+            # Falls back to exclude if link format is unexpected.
             try:
                 dd, mm = row.date.split("/")[:2]
-                row_iso = f"2026-{mm}-{dd}"  # vault started 2026; good enough for now
+                year_match = re.search(r"sessions/(\d{4})-\d{2}/", row.session_link)
+                year = year_match.group(1) if year_match else None
+                if year is None:
+                    continue  # no year extractable → exclude (safe default)
+                row_iso = f"{year}-{mm}-{dd}"
                 if row_iso < since:
                     continue
             except (ValueError, IndexError):
-                continue  # unparseable date + active since filter → exclude (safe default)
+                continue  # unparseable date + active since filter → exclude
         result.append(row)
     return result
 
