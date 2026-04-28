@@ -13,7 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from shadow_scribe.cmd_query import (
-    IndexRow,
+    cmd_query,
     _filter_rows,
     _parse_gemini_rerank,
     _parse_index_rows,
@@ -217,3 +217,97 @@ def test_stage2_no_trigger_in_range():
     top = 5
     need_stage2 = smart or hits_count < 2 or hits_count > top
     assert need_stage2 is False
+
+
+# ─── Stage 2 Gemini input routing ────────────────────────────────────────────
+
+def _make_query_matrix(match_count: int, extra_rows: int = 0) -> str:
+    header = "| Ngày | Project | Workspace | TL;DR | Session | Artifacts | Tags |"
+    sep = "|------|---------|-----------|-------|---------|-----------|------|"
+    rows = []
+    for i in range(match_count):
+        rows.append(
+            f"| {i + 1:02d}/04 | shadow-scribe | shadow scribe | "
+            f"match-keyword item {i + 1} | [→](sessions/2026-04/{i + 1:02d}_04_26.md) | — | #query |"
+        )
+    for i in range(extra_rows):
+        rows.append(
+            f"| {i + 1:02d}/03 | z-zero | ai-card | "
+            f"unrelated item {i + 1} | [→](sessions/2026-03/{i + 1:02d}_03_26.md) | — | #other |"
+        )
+    return "\n".join(["# FULL_MATRIX_SENTINEL", header, sep] + rows)
+
+
+def _capture_stage2_input(monkeypatch, tmp_path, content: str):
+    import shadow_scribe.cmd_query as query_module
+
+    index_file = tmp_path / "00_INDEX_MATRIX.md"
+    index_file.write_text(content, encoding="utf-8")
+    captured = {}
+
+    def fake_call_gemini_query(keyword, index_content):
+        captured["keyword"] = keyword
+        captured["index_content"] = index_content
+        return ""
+
+    monkeypatch.setattr(query_module, "INDEX_FILE", index_file)
+    monkeypatch.setattr(query_module, "call_gemini_query", fake_call_gemini_query)
+    return captured
+
+
+def test_stage2_top_k_path_when_hits_exceed_top(tmp_path, capsys, monkeypatch):
+    """hits > top, smart=False → Gemini receives Stage 1 hits only, not full MATRIX."""
+    content = _make_query_matrix(match_count=10, extra_rows=3)
+    captured = _capture_stage2_input(monkeypatch, tmp_path, content)
+
+    cmd_query("match-keyword", top=5, smart=False)
+
+    gemini_input = captured["index_content"]
+    assert "FULL_MATRIX_SENTINEL" not in gemini_input
+    assert gemini_input.count("match-keyword item") == 10
+    assert "unrelated item" not in gemini_input
+    assert gemini_input != content
+
+
+def test_stage2_full_matrix_when_sparse(tmp_path, capsys, monkeypatch):
+    """hits < 2 → Gemini receives full MATRIX for semantic recall."""
+    content = _make_query_matrix(match_count=1, extra_rows=3)
+    captured = _capture_stage2_input(monkeypatch, tmp_path, content)
+
+    cmd_query("match-keyword", top=5, smart=False)
+
+    assert captured["index_content"] == content
+
+
+def test_stage2_full_matrix_when_smart_flag(tmp_path, capsys, monkeypatch):
+    """--smart → Gemini receives full MATRIX even when grep has many hits."""
+    content = _make_query_matrix(match_count=10, extra_rows=3)
+    captured = _capture_stage2_input(monkeypatch, tmp_path, content)
+
+    cmd_query("match-keyword", top=5, smart=True)
+
+    assert captured["index_content"] == content
+
+
+def test_stage2_header_prepended_in_top_k(tmp_path, capsys, monkeypatch):
+    """Top-K candidate slice keeps markdown table context for Gemini."""
+    content = _make_query_matrix(match_count=10, extra_rows=3)
+    captured = _capture_stage2_input(monkeypatch, tmp_path, content)
+
+    cmd_query("match-keyword", top=5, smart=False)
+
+    assert captured["index_content"].startswith(
+        "| Date | Project | Workspace | TL;DR | Session | Artifacts | Tags |\n"
+        "|------|---------|-----------|-------|---------|-----------|------|\n"
+    )
+
+
+def test_stage2_print_savings_message(tmp_path, capsys, monkeypatch):
+    """Top-K path prints candidate count and saved full-MATRIX row count."""
+    content = _make_query_matrix(match_count=10, extra_rows=3)
+    _capture_stage2_input(monkeypatch, tmp_path, content)
+
+    cmd_query("match-keyword", top=5, smart=False)
+
+    out = capsys.readouterr().out
+    assert "Top-K rerank: 10 candidates" in out

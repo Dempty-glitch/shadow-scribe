@@ -180,7 +180,19 @@ def cmd_query(
         reason = f"grep > top={top} ({len(hits)} found, needs reranking)"
     print(f"🧠 Stage 2 trigger: {reason}")
 
-    rerank_raw = call_gemini_query(keyword, content).strip()
+    if not smart and len(hits) >= 2:
+        candidates = "\n".join(r.raw for r in hits)
+        gemini_input = (
+            "| Date | Project | Workspace | TL;DR | Session | Artifacts | Tags |\n"
+            "|------|---------|-----------|-------|---------|-----------|------|\n"
+            f"{candidates}"
+        )
+        print(f"   Top-K rerank: {len(hits)} candidates "
+              f"(saves ~{len(rows) - len(hits)} rows from full MATRIX)")
+    else:
+        gemini_input = content
+
+    rerank_raw = call_gemini_query(keyword, gemini_input).strip()
     if not rerank_raw:
         print("\n(Stage 2: Gemini returned no relevant results)")
         if hits:
