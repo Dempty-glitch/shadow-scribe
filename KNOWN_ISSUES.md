@@ -10,7 +10,7 @@
 | KI-001 | Same-day session collision: INDEX_MATRIX path mismatch | 🔴 Critical | ✅ FIXED | `1d5617c` |
 | KI-002 | Agent onboard: no git cross-check for stale INDEX | 🟡 Medium | ✅ FIXED | `1d5617c` |
 | KI-003 | Vault/repo GUIDE.md drift (manual copy on setup, no resync) | 🟡 Medium | ✅ FIXED | `0ef9051` |
-| KI-004 | Agent action-impulse: writes code on read-only intent | 🟡 Medium | ✅ FIXED | _(this commit)_ |
+| KI-004 | Agent action-impulse: writes code on read-only intent | 🟡 Medium | ✅ FIXED | `494974f` |
 
 ---
 
