@@ -47,7 +47,7 @@ def _parse_index_rows(content: str) -> list[IndexRow]:
             continue
         cells = _split_md_row(line)
         if len(cells) != 7:
-            if len(cells) > 2:  # skip 2-col stats rows silently
+            if 6 <= len(cells) <= 8:  # near-miss: likely malformed Gemini output
                 print(f"⚠️  _parse_index_rows: skipped row with {len(cells)} cols (expected 7): {line[:60]!r}")
             continue
         if cells[0].lower() in ("ngày", "date"):
