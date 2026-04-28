@@ -72,6 +72,15 @@ Read these 3 files in order before starting work:
 
 Provide a brief summary to the user: where we are, what's pending, then start coding.
 
+### ⚠️ Plan-First Discipline
+
+If you're working from a plan finalized in this conversation, **dump it to vault before starting code**:
+```bash
+cp <plan-path>.md ~/Documents/agent_vault/projects/<project>/plans/
+```
+
+Why: `watchdog audit` auto-picks the most recent `implementation_plan.md` by mtime. If your current plan isn't in vault, audit will load an **OLD plan** and report **false-positive drift**. Human gate (the dev) must enforce this — agents won't catch their own missing context.
+
 ### During Session — Code as normal
 
 - Making an important architecture decision → Type `@adr [issue name]` (see @adr section below)
