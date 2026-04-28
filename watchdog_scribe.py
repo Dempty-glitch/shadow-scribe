@@ -11,6 +11,7 @@ load_env()  # Explicit — no side-effect on import
 
 from shadow_scribe.cmd_audit import cmd_audit
 from shadow_scribe.cmd_digest import cmd_digest
+from shadow_scribe.cmd_list import cmd_list
 from shadow_scribe.cmd_query import cmd_query
 from shadow_scribe.cmd_scribe import cmd_scribe
 
@@ -66,6 +67,27 @@ def main() -> None:
         help="Force Stage 2 LLM rerank (skip grep, go straight to Gemini)"
     )
 
+    # list (deterministic catalog filter, no LLM)
+    list_parser = subparsers.add_parser(
+        "list", help="Filter vault catalog — deterministic, no LLM (~50ms)"
+    )
+    list_parser.add_argument(
+        "--project", default=None,
+        help="Substring match on Project column (case-insensitive)"
+    )
+    list_parser.add_argument(
+        "--since", default=None, metavar="YYYY-MM-DD",
+        help="Only rows with date >= YYYY-MM-DD"
+    )
+    list_parser.add_argument(
+        "--tag", default=None,
+        help="Substring match on Tags column (e.g., adr, bugfix)"
+    )
+    list_parser.add_argument(
+        "--top", type=_positive_int, default=20, metavar="N",
+        help="Max number of results (default: 20)"
+    )
+
     args = parser.parse_args()
 
     if args.command == "scribe":
@@ -78,6 +100,11 @@ def main() -> None:
         cmd_query(
             keyword=args.keyword, project=args.project,
             top=args.top, smart=args.smart,
+        )
+    elif args.command == "list":
+        cmd_list(
+            project=args.project, since=args.since,
+            tag=args.tag, top=args.top,
         )
     else:
         parser.print_help()
