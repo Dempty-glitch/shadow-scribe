@@ -6,6 +6,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from typing import Optional
 
 
 from shadow_scribe.config import get_gemini_api_key, get_gemini_model, get_lang
@@ -52,6 +53,37 @@ def _http_post_with_retry(
 
     # Should never reach here, but satisfy type checker
     sys.exit(1)
+
+
+# ─── Gemini response extractor ────────────────────────────────────────────────
+
+def _extract_text(result: dict, fallback: Optional[str] = None) -> str:
+    """Safely extract text from Gemini response.
+
+    If fallback is None (default): exit cleanly on SAFETY/missing parts (fail loud).
+    If fallback is set (e.g. ""): return fallback instead of exiting — for graceful
+    degradation paths like call_gemini_query (Stage 2 rerank, ADR-006).
+    """
+    candidates = result.get("candidates", [])
+    if not candidates:
+        if fallback is not None:
+            return fallback
+        print("❌ Gemini returned no candidates (likely SAFETY block or quota)")
+        print(f"   promptFeedback: {result.get('promptFeedback', {})}")
+        sys.exit(1)
+
+    cand = candidates[0]
+    finish_reason = cand.get("finishReason", "UNKNOWN")
+    parts = cand.get("content", {}).get("parts", [])
+
+    if not parts:
+        if fallback is not None:
+            return fallback
+        print(f"❌ Gemini response has no parts (finishReason={finish_reason})")
+        print(f"   safetyRatings: {cand.get('safetyRatings', [])}")
+        sys.exit(1)
+
+    return parts[0].get("text", "")
 
 
 # ─── Output parser (3-layer: JSON → strip fence → separator fallback) ─────────
@@ -155,7 +187,7 @@ def call_gemini(brief: str, diff: str, plan: str = "") -> str:
 
     print(f"🤖 Calling Gemini via HTTP ({model})...")
     result = _http_post_with_retry(url, payload)
-    return result["candidates"][0]["content"]["parts"][0]["text"]
+    return _extract_text(result)
 
 
 def call_gemini_audit(diff: str, plan: str) -> str:
@@ -186,7 +218,7 @@ def call_gemini_audit(diff: str, plan: str) -> str:
 
     print("🤖 Running audit...")
     result = _http_post_with_retry(url, payload)
-    return result["candidates"][0]["content"]["parts"][0]["text"]
+    return _extract_text(result)
 
 
 def call_gemini_query(keyword: str, index_content: str) -> str:
@@ -223,7 +255,4 @@ def call_gemini_query(keyword: str, index_content: str) -> str:
 
     print(f"🤖 Stage 2: Gemini semantic rerank ({model})...")
     result = _http_post_with_retry(url, payload)
-    try:
-        return result["candidates"][0]["content"]["parts"][0]["text"]
-    except (KeyError, IndexError):
-        return ""
+    return _extract_text(result, fallback="")

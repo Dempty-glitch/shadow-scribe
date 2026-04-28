@@ -98,12 +98,90 @@ def test_parse_output_broken():
         parse_output("Garbage data without separator or json")
 
 def test_call_gemini_query_missing_parts(monkeypatch):
-    """Regression: Gemini returns response without 'parts' (e.g. SAFETY block) → return '' not crash."""
+    """Regression: Gemini SAFETY block on Stage 2 rerank → return '' (graceful, ADR-006 fallback)."""
     import shadow_scribe.gemini as g
     monkeypatch.setattr(g, "get_gemini_api_key", lambda: "fake-key")
     monkeypatch.setattr(g, "_http_post_with_retry", lambda *a, **kw: {"candidates": [{"finishReason": "SAFETY"}]})
     result = g.call_gemini_query("abc123nonexistent", "| 01/01 | proj | tldr | link |")
     assert result == ""
+
+# ─── _extract_text tests (Track A — A3) ───────────────────────────────────────
+
+def test_extract_text_happy():
+    """Normal Gemini response → returns text."""
+    from shadow_scribe.gemini import _extract_text
+    result = {"candidates": [{"content": {"parts": [{"text": "hello world"}]}, "finishReason": "STOP"}]}
+    assert _extract_text(result) == "hello world"
+
+def test_extract_text_no_candidates():
+    """Empty candidates (quota/safety block at prompt level) → sys.exit."""
+    from shadow_scribe.gemini import _extract_text
+    with pytest.raises(SystemExit):
+        _extract_text({"candidates": []})
+
+def test_extract_text_no_candidates_key():
+    """Missing candidates key entirely → sys.exit."""
+    from shadow_scribe.gemini import _extract_text
+    with pytest.raises(SystemExit):
+        _extract_text({"promptFeedback": {"blockReason": "SAFETY"}})
+
+def test_extract_text_no_parts():
+    """Candidate exists but no parts (SAFETY finish) → sys.exit."""
+    from shadow_scribe.gemini import _extract_text
+    with pytest.raises(SystemExit):
+        _extract_text({"candidates": [{"finishReason": "SAFETY", "safetyRatings": []}]})
+
+def test_extract_text_empty_text():
+    """Parts exist but text is empty string → returns '' (not exit)."""
+    from shadow_scribe.gemini import _extract_text
+    result = {"candidates": [{"content": {"parts": [{"text": ""}]}, "finishReason": "STOP"}]}
+    assert _extract_text(result) == ""
+
+def test_extract_text_fallback_no_candidates():
+    """fallback set + no candidates → returns fallback, does NOT exit."""
+    from shadow_scribe.gemini import _extract_text
+    assert _extract_text({"candidates": []}, fallback="") == ""
+
+def test_extract_text_fallback_no_parts():
+    """fallback set + no parts → returns fallback, does NOT exit."""
+    from shadow_scribe.gemini import _extract_text
+    result = {"candidates": [{"finishReason": "SAFETY", "safetyRatings": []}]}
+    assert _extract_text(result, fallback="") == ""
+
+def test_extract_text_fallback_none_still_exits():
+    """fallback=None (default) + no candidates → still sys.exit (fail loud)."""
+    from shadow_scribe.gemini import _extract_text
+    with pytest.raises(SystemExit):
+        _extract_text({"candidates": []})
+
+# ─── _positive_int tests (Track A — A2) ───────────────────────────────────────
+
+def test_positive_int_valid():
+    """Valid positive int → returns int."""
+    from watchdog_scribe import _positive_int
+    assert _positive_int("5") == 5
+    assert _positive_int("1") == 1
+    assert _positive_int("100") == 100
+
+def test_positive_int_zero():
+    """Zero → raises ArgumentTypeError."""
+    import argparse
+    from watchdog_scribe import _positive_int
+    with pytest.raises(argparse.ArgumentTypeError):
+        _positive_int("0")
+
+def test_positive_int_negative():
+    """Negative → raises ArgumentTypeError."""
+    import argparse
+    from watchdog_scribe import _positive_int
+    with pytest.raises(argparse.ArgumentTypeError):
+        _positive_int("-1")
+
+def test_positive_int_not_a_number():
+    """Non-numeric string → raises ValueError."""
+    from watchdog_scribe import _positive_int
+    with pytest.raises(ValueError):
+        _positive_int("abc")
 
 # ─── io_utils.py tests ────────────────────────────────────────────────────────
 

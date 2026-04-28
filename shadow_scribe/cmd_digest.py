@@ -11,7 +11,7 @@ from shadow_scribe.config import (
     get_gemini_model,
     get_lang,
 )
-from shadow_scribe.gemini import _http_post_with_retry
+from shadow_scribe.gemini import _http_post_with_retry, _extract_text
 from shadow_scribe.io_utils import _parse_project_from_log, _parse_session_date
 from shadow_scribe.prompts import DIGEST_PROMPT_EN, DIGEST_PROMPT_VI
 from shadow_scribe.security import _redact_secrets, _sanitize_tags
@@ -144,7 +144,7 @@ def cmd_digest(project_filter: str = "", last_days: int = 0) -> None:
 
     print("🤖 Aggregating digest...")
     result_json = _http_post_with_retry(url, payload)
-    digest_text = result_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+    digest_text = _extract_text(result_json).strip()
 
     # 6. Print to terminal
     print("\n" + "═" * 60)

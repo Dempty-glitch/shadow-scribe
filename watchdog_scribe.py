@@ -15,6 +15,14 @@ from shadow_scribe.cmd_query import cmd_query
 from shadow_scribe.cmd_scribe import cmd_scribe
 
 
+def _positive_int(value: str) -> int:
+    """Argparse type: reject --top < 1."""
+    n = int(value)
+    if n < 1:
+        raise argparse.ArgumentTypeError(f"must be >= 1, got {n}")
+    return n
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=f"Shadow Scribe v{VERSION} — Watchdog Agent for AI sessions"
@@ -50,7 +58,7 @@ def main() -> None:
         help="Filter by project (e.g., shadow-scribe, z-zero). Empty = all."
     )
     query_parser.add_argument(
-        "--top", type=int, default=5, metavar="N",
+        "--top", type=_positive_int, default=5, metavar="N",
         help="Max number of results (default: 5)"
     )
     query_parser.add_argument(

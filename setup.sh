@@ -45,20 +45,24 @@ fi
 ENV_FILE="$VAULT_DIR/.env"
 if [ ! -f "$ENV_FILE" ]; then
     echo ""
-    read -p "🔑 Enter your Gemini API Key (get one at https://aistudio.google.com/): " API_KEY
+    read -s -p "🔑 Enter your Gemini API Key (get one at https://aistudio.google.com/): " API_KEY
+    echo ""
     if [ -n "$API_KEY" ]; then
         cat > "$ENV_FILE" << EOF
 # Shadow Scribe — Environment Variables
 # Watchdog auto-reads this file, no export needed.
 GEMINI_API_KEY=$API_KEY
 EOF
-        echo "   ✅ .env created at $ENV_FILE"
+        chmod 600 "$ENV_FILE"
+        echo "   ✅ .env created at $ENV_FILE (permissions: 600)"
+        echo "   ⚠️  If you pasted from clipboard, clear shell history: history -c"
     else
         cat > "$ENV_FILE" << 'EOF'
 # Shadow Scribe — Environment Variables
 # Watchdog auto-reads this file, no export needed.
 GEMINI_API_KEY=YOUR_KEY_HERE
 EOF
+        chmod 600 "$ENV_FILE"
         echo "   ⚠️  .env created but no API Key provided. Edit later: $ENV_FILE"
     fi
 else
