@@ -73,24 +73,27 @@ def test_filter_diff_keeps_py():
 
 def test_parse_output_json():
     import json
-    raw = json.dumps({"session_log": "# Log", "index_row": "| index |"})
+    valid_row = "| 28/04 | shadow-scribe | shadow scribe | Fix A3 Gemini guard | [\u2192](sessions/2026-04/28_04_26.md) | plan.md | #bugfix |"
+    raw = json.dumps({"session_log": "# Log", "index_row": valid_row})
     log, row = parse_output(raw)
     assert log == "# Log"
-    assert row == "| index |"
+    assert row == valid_row
 
 def test_parse_output_fence():
     import json
-    raw_json = json.dumps({"session_log": "# Log", "index_row": "| index |"})
+    valid_row = "| 28/04 | shadow-scribe | shadow scribe | Fix A3 Gemini guard | [\u2192](sessions/2026-04/28_04_26.md) | plan.md | #bugfix |"
+    raw_json = json.dumps({"session_log": "# Log", "index_row": valid_row})
     raw = f"```json\n{raw_json}\n```"
     log, row = parse_output(raw)
     assert log == "# Log"
-    assert row == "| index |"
+    assert row == valid_row
 
 def test_parse_output_separator():
-    raw = "# Session Log\n===INDEX===\n| index |"
+    valid_row = "| 28/04 | shadow-scribe | shadow scribe | Fix A3 Gemini guard | [\u2192](sessions/2026-04/28_04_26.md) | plan.md | #bugfix |"
+    raw = f"# Session Log\n===INDEX===\n{valid_row}"
     log, row = parse_output(raw)
     assert log == "# Session Log"
-    assert row == "| index |"
+    assert row == valid_row
 
 def test_parse_output_broken():
     # Should exit or raise. Since it calls sys.exit(1), we catch SystemExit
