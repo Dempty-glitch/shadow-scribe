@@ -1,4 +1,4 @@
-# 🛡️ Shadow Scribe — Operations Guide (v1.3.2)
+# 🛡️ Shadow Scribe — Operations Guide (v1.3.3)
 
 > This file is the **sole operations guide** for AI Agents.
 > If you are an IDE Agent (Antigravity, Cursor, Windsurf, Claude Code), read this entire file before taking action.
@@ -69,7 +69,9 @@ Read these files in order before starting work:
 1. `~/Documents/agent_vault/00_INDEX_MATRIX.md` — Find the latest session for the project
 2. `~/Documents/agent_vault/sessions/{YYYY-MM}/{latest_session}.md` — Read full log from previous session
 3. `~/Documents/agent_vault/projects/{project}/adr/ADR_INDEX.md` — Review locked architecture decisions
-4. Run `git log --oneline -20` in the workspace — **git is ground truth** when INDEX seems stale or contradictory
+4. `~/Documents/agent_vault/projects/{project}/INTENT.md` — Load project boundaries (if exists)
+5. `~/Documents/agent_vault/projects/{project}/CRYSTAL.md` — Load current architecture map (if exists)
+6. Run `git log --oneline -20` in the workspace — **git is ground truth** when INDEX seems stale or contradictory
 
 Provide a brief summary to the user: where we are, what's pending, then start coding.
 
