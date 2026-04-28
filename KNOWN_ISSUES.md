@@ -7,8 +7,8 @@
 
 | ID | Bug | Severity | Status | Fixed in |
 |----|-----|----------|--------|----------|
-| KI-001 | Same-day session collision: INDEX_MATRIX path mismatch | 🔴 Critical | ✅ FIXED | _(pending commit)_ |
-| KI-002 | Agent onboard: no git cross-check for stale INDEX | 🟡 Medium | ✅ FIXED | _(pending commit)_ |
+| KI-001 | Same-day session collision: INDEX_MATRIX path mismatch | 🔴 Critical | ✅ FIXED | `1d5617c` |
+| KI-002 | Agent onboard: no git cross-check for stale INDEX | 🟡 Medium | ✅ FIXED | `1d5617c` |
 
 ---
 
