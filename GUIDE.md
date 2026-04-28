@@ -165,7 +165,9 @@ watchdog scribe
 | `watchdog query <keyword> --project NAME` | Filter results by project | 🟢 READ |
 | `watchdog query <keyword> --smart` | Force Stage 2 Gemini even if Stage 1 has results | 🟢 READ |
 
-> The `watchdog` alias is created automatically by `setup.sh`. If missing, re-run `setup.sh`.
+> **Invoking watchdog:**
+> - **Human (interactive shell):** `watchdog <command>` — alias set by `setup.sh`
+> - **Agent (non-login shell):** `python3 watchdog_scribe.py <command>` — alias not loaded, use this directly
 
 ---
 
