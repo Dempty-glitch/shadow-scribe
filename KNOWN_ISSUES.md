@@ -10,6 +10,7 @@
 | KI-001 | Same-day session collision: INDEX_MATRIX path mismatch | 🔴 Critical | ✅ FIXED | `1d5617c` |
 | KI-002 | Agent onboard: no git cross-check for stale INDEX | 🟡 Medium | ✅ FIXED | `1d5617c` |
 | KI-003 | Vault/repo GUIDE.md drift (manual copy on setup, no resync) | 🟡 Medium | ✅ FIXED | `0ef9051` |
+| KI-004 | Agent action-impulse: writes code on read-only intent | 🟡 Medium | ✅ FIXED | _(this commit)_ |
 
 ---
 
@@ -75,3 +76,17 @@ Pure helper `sync_file_if_differ()` lives in `io_utils.py` (testable, reusable).
 - `test_sync_file_if_differ_overwrites_when_content_differs`
 - `test_sync_file_if_differ_noop_when_match`
 - `test_sync_file_if_differ_silent_when_source_missing`
+
+---
+
+## KI-004 — Agent action-impulse on read-only intent
+
+**Discovered:** 2026-04-29 (codex onboarding test)
+
+**Symptom:** User asks codex to "đọc guide" / "làm tiếp cùng tôi" — codex correctly loads context (state detection passes), but then immediately drafts a patch for `cmd_query.py` (Stage 2 top-K) without being asked to implement anything. Patch attempt was rejected, repo stayed clean, but the impulse to act on detected pending work is the failure.
+
+**Root cause:** GUIDE.md "Start of Session" said "provide brief summary, then start coding" — ambiguous. Agent interprets identifying pending work as authorization to act on it. State analysis ≠ action authorization, but GUIDE didn't draw the line.
+
+**Fix:** Added "🛑 Intent Discipline" section to GUIDE.md with explicit verb table. Read-only intents ("đọc", "summarize", "tóm tắt") → load + report + STOP. Action intents ("fix", "build", "sửa", "vá") → write code. When ambiguous, agent must ask.
+
+**Tests:** No code change, prompt-only fix. Verification = re-running codex/anti onboarding test and confirming agent stops after report (manual QA, not automatable in pytest).

@@ -73,7 +73,20 @@ Read these files in order before starting work:
 5. `~/Documents/agent_vault/projects/{project}/CRYSTAL.md` — Load current architecture map (if exists)
 6. Run `git log --oneline -20` in the workspace — **git is ground truth** when INDEX seems stale or contradictory
 
-Provide a brief summary to the user: where we are, what's pending, then start coding.
+Provide a brief summary to the user: where we are, what's pending, **then STOP and wait for user direction**.
+
+### 🛑 Intent Discipline — Read vs Act (KI-004)
+
+**State analysis ≠ action authorization.** After loading context, report and stop. Do not write, edit, or patch any file until the user issues an explicit action verb.
+
+| Intent | User says... | Agent does... |
+|--------|-------------|---------------|
+| 🟢 **Read-only** | "đọc", "load context", "tóm tắt", "summarize", "where are we", "tình trạng", "explain", "why" | Load files → report state → **STOP** |
+| 🔴 **Action** | "fix", "build", "implement", "add", "refactor", "sửa", "vá", "triển khai", "làm tiếp" + specific task | Proceed to write code |
+
+**When in doubt**, ASK: "Do you want me to implement this, or just analyze?" — never assume.
+
+⚠️ Common failure: agent loads context, correctly identifies pending work, then immediately drafts patches without permission. Identifying pending work is ANALYSIS. Implementing it requires user GO.
 
 ### ⚠️ Plan-First Discipline
 
