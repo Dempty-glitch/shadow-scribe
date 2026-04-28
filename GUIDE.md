@@ -65,10 +65,11 @@ Rules for mapping code folder names (workspace) → project names in vault:
 
 ### Start of Session — Load Context
 
-Read these 3 files in order before starting work:
+Read these files in order before starting work:
 1. `~/Documents/agent_vault/00_INDEX_MATRIX.md` — Find the latest session for the project
 2. `~/Documents/agent_vault/sessions/{YYYY-MM}/{latest_session}.md` — Read full log from previous session
 3. `~/Documents/agent_vault/projects/{project}/adr/ADR_INDEX.md` — Review locked architecture decisions
+4. Run `git log --oneline -20` in the workspace — **git is ground truth** when INDEX seems stale or contradictory
 
 Provide a brief summary to the user: where we are, what's pending, then start coding.
 

@@ -323,3 +323,30 @@ def test_gemini_model_rejected_garbage(monkeypatch):
     from shadow_scribe.config import get_gemini_model
     assert get_gemini_model() == "gemini-2.5-flash"
 
+
+# ─── _fix_index_row_path tests (Bug A — session collision path mismatch) ──────
+
+def test_fix_index_row_path_no_collision():
+    """No collision (base == actual) → index_row unchanged."""
+    from shadow_scribe.cmd_scribe import _fix_index_row_path
+    row = "| 28/04 | shadow-scribe | ws | TL;DR | [→](sessions/2026-04/28_04_26.md) | — | #tag |"
+    result = _fix_index_row_path(row, "28_04_26.md", "28_04_26.md", "2026", "04")
+    assert result == row
+
+
+def test_fix_index_row_path_collision_suffix():
+    """Collision (suffix _1) → index_row path updated to match actual file."""
+    from shadow_scribe.cmd_scribe import _fix_index_row_path
+    row = "| 28/04 | shadow-scribe | ws | TL;DR | [→](sessions/2026-04/28_04_26.md) | — | #tag |"
+    result = _fix_index_row_path(row, "28_04_26.md", "28_04_26_1.md", "2026", "04")
+    assert "28_04_26_1.md" in result
+    assert "28_04_26.md)" not in result
+
+
+def test_fix_index_row_path_no_match_in_row():
+    """Edge: index_row doesn't contain expected path pattern → return unchanged, no crash."""
+    from shadow_scribe.cmd_scribe import _fix_index_row_path
+    row = "| 28/04 | proj | ws | TL;DR | [→](somewhere/else.md) | — | #tag |"
+    result = _fix_index_row_path(row, "28_04_26.md", "28_04_26_1.md", "2026", "04")
+    assert result == row
+

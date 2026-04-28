@@ -15,6 +15,22 @@ from shadow_scribe.gemini import call_gemini, parse_output
 from shadow_scribe.io_utils import _atomic_write_index, read_file
 from shadow_scribe.security import _filter_diff
 
+def _fix_index_row_path(
+    index_row: str, base_name: str, actual_name: str,
+    yyyy: str, mm: str,
+) -> str:
+    """Fix INDEX_MATRIX session link when same-day suffix is applied.
+
+    Gemini generates index_row with hardcoded base path (DD_MM_YY.md).
+    When scribe detects a collision and suffixes the file (DD_MM_YY_1.md),
+    the INDEX row must be patched to point to the actual file.
+    """
+    if actual_name == base_name:
+        return index_row
+    base_path = f"sessions/{yyyy}-{mm}/{base_name}"
+    actual_path = f"sessions/{yyyy}-{mm}/{actual_name}"
+    return index_row.replace(base_path, actual_path)
+
 
 def cmd_scribe(mock: bool) -> None:
     """Compile session brief + git diff → session log + index row."""
@@ -121,6 +137,10 @@ def cmd_scribe(mock: bool) -> None:
         while session_file.exists():
             session_file = session_folder / f"{dd}_{mm}_{yyyy[2:]}_{counter}.md"
             counter += 1
+
+        # Fix INDEX path if same-day collision triggered suffix
+        base_name = f"{dd}_{mm}_{yyyy[2:]}.md"
+        index_row = _fix_index_row_path(index_row, base_name, session_file.name, yyyy, mm)
 
         session_file.write_text(session_log, encoding="utf-8")
 
