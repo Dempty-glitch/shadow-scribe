@@ -18,16 +18,19 @@ from shadow_scribe.cmd_scribe import cmd_scribe
 from shadow_scribe.io_utils import sync_file_if_differ
 
 
-def _sync_guide() -> None:
-    """Auto-sync repo GUIDE.md → vault GUIDE.md on every watchdog command.
+_SYNC_DOC_FILES = ["GUIDE.md", "README.md", "KNOWN_ISSUES.md"]
 
-    Fixes KI-003 vault/repo GUIDE drift. Repo is canonical (dev-edited),
-    vault is derived (agent-read). Silent if files match or repo GUIDE absent.
+
+def _sync_docs() -> None:
+    """Auto-sync canonical doc files from repo → vault on every watchdog command.
+
+    Repo is canonical (dev-edited). Vault is agent-read (derived).
+    Silent per file when match. Fixes KI-003 drift pattern.
     """
-    repo_guide = Path(__file__).resolve().parent / "GUIDE.md"
-    vault_guide = VAULT_DIR / "GUIDE.md"
-    if sync_file_if_differ(repo_guide, vault_guide):
-        print(f"📋 GUIDE.md auto-synced: repo → {vault_guide}")
+    repo_dir = Path(__file__).resolve().parent
+    for fname in _SYNC_DOC_FILES:
+        if sync_file_if_differ(repo_dir / fname, VAULT_DIR / fname):
+            print(f"📋 {fname} auto-synced: repo → vault")
 
 
 def _positive_int(value: str) -> int:
@@ -39,7 +42,7 @@ def _positive_int(value: str) -> int:
 
 
 def main() -> None:
-    _sync_guide()
+    _sync_docs()
     parser = argparse.ArgumentParser(
         description=f"Shadow Scribe v{VERSION} — Watchdog Agent for AI sessions"
     )
