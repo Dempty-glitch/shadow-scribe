@@ -70,6 +70,7 @@ Tối đa 10 file. Nếu vượt, gom phần còn lại thành 1 dòng "và N fi
 ─── YÊU CẦU CHO `index_row` (Markdown) ───
 Đúng 1 dòng Markdown Table:
 | {DD/MM} | {project} | {workspace} | {TL;DR tối đa 15 từ} | [→](sessions/{YYYY-MM}/{DD_MM_YY}.md) | {link artifacts/ADR nếu có, — nếu không} | #{tag1} #{tag2} |
+**KHÔNG dùng ký tự "|" trong cell TL;DR** — sẽ phá table parser. Dùng "/" hoặc "," để liệt kê.
 
 ═══ QUY TẮC BẮT BUỘC ═══
 - KHÔNG ĐƯỢC bịa thêm file, commit, hoặc code không có trong input
@@ -147,6 +148,7 @@ Maximum 10 files. If exceeded, group the rest into 1 row "and N other files (cos
 ─── REQUIREMENTS FOR `index_row` (Markdown) ───
 Exactly 1 Markdown Table row:
 | {DD/MM} | {project} | {workspace} | {TL;DR max 15 words} | [→](sessions/{YYYY-MM}/{DD_MM_YY}.md) | {artifacts/ADR link if any, — if none} | #{tag1} #{tag2} |
+**Do NOT use "|" character in TL;DR cell** — it breaks the table parser. Use "/" or "," for lists.
 
 ═══ MANDATORY RULES ═══
 - DO NOT invent files, commits, or code not present in the input
