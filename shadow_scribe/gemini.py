@@ -86,6 +86,36 @@ def _extract_text(result: dict, fallback: Optional[str] = None) -> str:
     return parts[0].get("text", "")
 
 
+# ─── Index row validator (B1) ────────────────────────────────────────────────
+
+def _validate_index_row(row: str) -> bool:
+    """Validate a candidate index_row string from Gemini output.
+
+    Rules (lenient by design — only enforces master row format):
+    - Must start and end with '|'
+    - Must have exactly 7 cells (split by '|' yields 9 parts: 2 empty edge + 7 cells)
+    - First cell must not be a header label ('date', 'ngày')
+    - Returns False for empty/non-table strings (caller decides what to do)
+
+    NOT intended to audit the full vault — only validates Gemini output
+    before writing to INDEX_MATRIX. Non-7-col rows (ADR sub-tables etc.)
+    are not master rows and are correctly rejected here.
+    """
+    if not row or not row.startswith("|") or not row.endswith("|"):
+        return False
+    cells = [c.strip() for c in row.split("|")]
+    # cells[0] and cells[-1] are empty strings from leading/trailing '|'
+    if len(cells) != 9:  # 2 empty edges + 7 content cells
+        return False
+    # Reject separator lines: |---|---|---|
+    if all(re.match(r'^-+$', c) for c in cells[1:-1] if c):
+        return False
+    first_cell = cells[1].lower()
+    if first_cell in ("date", "ngày", "id"):
+        return False  # header row, not a data row
+    return True
+
+
 # ─── Output parser (3-layer: JSON → strip fence → separator fallback) ─────────
 
 def parse_output(raw: str) -> tuple[str, str]:
@@ -101,6 +131,13 @@ def parse_output(raw: str) -> tuple[str, str]:
         log = data.get("session_log", "").strip()
         row = data.get("index_row", "").strip()
         if log:
+            if not row:
+                print("❌ parse_output: index_row is empty (invariant violated — session log must have index entry)")
+                sys.exit(1)
+            if not _validate_index_row(row):
+                print("❌ parse_output: index_row is not a valid 7-column master row:")
+                print(f"   Got: {row!r}")
+                sys.exit(1)
             return log, row
     except (json.JSONDecodeError, KeyError, AttributeError):
         pass
@@ -112,6 +149,13 @@ def parse_output(raw: str) -> tuple[str, str]:
         log = data.get("session_log", "").strip()
         row = data.get("index_row", "").strip()
         if log:
+            if not row:
+                print("❌ parse_output: index_row is empty (invariant violated — session log must have index entry)")
+                sys.exit(1)
+            if not _validate_index_row(row):
+                print("❌ parse_output: index_row is not a valid 7-column master row:")
+                print(f"   Got: {row!r}")
+                sys.exit(1)
             return log, row
     except (json.JSONDecodeError, KeyError, AttributeError):
         pass
@@ -133,6 +177,15 @@ def parse_output(raw: str) -> tuple[str, str]:
     if len(index_lines) != 1:
         print(f"⚠️  Part 2 has {len(index_lines)} lines instead of 1. Taking first line starting with |")
         index_row = next((line for line in index_lines if line.startswith("|")), index_lines[0])
+
+    # Validate index_row (same invariant as JSON layers)
+    if not index_row:
+        print("❌ parse_output: index_row is empty (invariant violated — session log must have index entry)")
+        sys.exit(1)
+    if not _validate_index_row(index_row):
+        print("❌ parse_output: index_row is not a valid 7-column master row:")
+        print(f"   Got: {index_row!r}")
+        sys.exit(1)
 
     return session_log, index_row
 

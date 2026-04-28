@@ -56,6 +56,39 @@ def _atomic_write_index(index_path: Path, new_row: str) -> None:
             fcntl.flock(lock_fd, fcntl.LOCK_UN)
 
 
+# ─── Markdown table row parser (B2) ──────────────────────────────────────────
+
+_NULL_PLACEHOLDER = "\x00"  # Sentinel for escaped pipes during split
+
+
+def _split_md_row(line: str) -> list[str]:
+    r"""Split a Markdown table row into cells, handling escaped pipes (\|).
+
+    Strategy: swap \| → \x00 before split, restore \x00 → | after.
+    Defensive: asserts input contains no raw null bytes (would corrupt parsing).
+
+    Returns list of stripped cell strings (excluding leading/trailing empty
+    strings from surrounding '|' delimiters).
+
+    Example:
+        '| A \| B | C |' → ['A | B', 'C']
+    """
+    assert _NULL_PLACEHOLDER not in line, (
+        f"_split_md_row: input contains null byte (\\x00) which is reserved "
+        f"as placeholder. Input: {line!r}"
+    )
+    # Swap escaped pipes to placeholder, split, restore
+    escaped = line.replace("\\|", _NULL_PLACEHOLDER)
+    parts = escaped.split("|")
+    cells = [p.replace(_NULL_PLACEHOLDER, "|").strip() for p in parts]
+    # Drop leading/trailing empty strings from surrounding '|'
+    if cells and cells[0] == "":
+        cells = cells[1:]
+    if cells and cells[-1] == "":
+        cells = cells[:-1]
+    return cells
+
+
 # ─── Session date & project parsing (used by cmd_digest) ─────────────────────
 
 def _parse_session_date(filename: str) -> Optional[datetime]:

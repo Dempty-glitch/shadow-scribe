@@ -12,6 +12,7 @@ from typing import NamedTuple, Optional
 
 from shadow_scribe.config import INDEX_FILE
 from shadow_scribe.gemini import call_gemini_query
+from shadow_scribe.io_utils import _split_md_row
 
 TOP_N_DEFAULT = 5
 TLDR_MAX = 50
@@ -44,8 +45,10 @@ def _parse_index_rows(content: str) -> list[IndexRow]:
             continue
         if "---" in line:
             continue
-        cells = [c.strip() for c in line.split("|")][1:-1]
+        cells = _split_md_row(line)
         if len(cells) != 7:
+            if 6 <= len(cells) <= 8:  # near-miss: likely malformed Gemini output
+                print(f"⚠️  _parse_index_rows: skipped row with {len(cells)} cols (expected 7): {line[:60]!r}")
             continue
         if cells[0].lower() in ("ngày", "date"):
             continue
@@ -116,7 +119,7 @@ def _parse_gemini_rerank(result: str) -> list[IndexRow]:
         line = line.strip()
         if not line.startswith("|") or "---" in line:
             continue
-        cells = [c.strip() for c in line.split("|")][1:-1]
+        cells = _split_md_row(line)
         if len(cells) != 7:
             continue
         if cells[0].lower() in ("ngày", "date"):
