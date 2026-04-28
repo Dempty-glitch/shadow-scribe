@@ -4,8 +4,9 @@
 Thin entry point: argparse only. All logic lives in shadow_scribe/ package.
 """
 import argparse
+from pathlib import Path
 
-from shadow_scribe.config import VERSION, load_env
+from shadow_scribe.config import VAULT_DIR, VERSION, load_env
 
 load_env()  # Explicit — no side-effect on import
 
@@ -14,6 +15,19 @@ from shadow_scribe.cmd_digest import cmd_digest
 from shadow_scribe.cmd_list import cmd_list
 from shadow_scribe.cmd_query import cmd_query
 from shadow_scribe.cmd_scribe import cmd_scribe
+from shadow_scribe.io_utils import sync_file_if_differ
+
+
+def _sync_guide() -> None:
+    """Auto-sync repo GUIDE.md → vault GUIDE.md on every watchdog command.
+
+    Fixes KI-003 vault/repo GUIDE drift. Repo is canonical (dev-edited),
+    vault is derived (agent-read). Silent if files match or repo GUIDE absent.
+    """
+    repo_guide = Path(__file__).resolve().parent / "GUIDE.md"
+    vault_guide = VAULT_DIR / "GUIDE.md"
+    if sync_file_if_differ(repo_guide, vault_guide):
+        print(f"📋 GUIDE.md auto-synced: repo → {vault_guide}")
 
 
 def _positive_int(value: str) -> int:
@@ -25,6 +39,7 @@ def _positive_int(value: str) -> int:
 
 
 def main() -> None:
+    _sync_guide()
     parser = argparse.ArgumentParser(
         description=f"Shadow Scribe v{VERSION} — Watchdog Agent for AI sessions"
     )

@@ -9,6 +9,7 @@
 |----|-----|----------|--------|----------|
 | KI-001 | Same-day session collision: INDEX_MATRIX path mismatch | 🔴 Critical | ✅ FIXED | `1d5617c` |
 | KI-002 | Agent onboard: no git cross-check for stale INDEX | 🟡 Medium | ✅ FIXED | `1d5617c` |
+| KI-003 | Vault/repo GUIDE.md drift (manual copy on setup, no resync) | 🟡 Medium | ✅ FIXED | _(this commit)_ |
 
 ---
 
@@ -50,3 +51,27 @@ source of truth.
 
 **Fix:** Added step to GUIDE.md: `git log --oneline -20` — git is ground truth when
 INDEX seems stale or contradictory. Updated both repo `GUIDE.md` and vault `GUIDE.md`.
+
+---
+
+## KI-003 — Vault/repo GUIDE.md drift
+
+**Discovered:** 2026-04-28 (immediately after KI-002 fix attempt)
+
+**Symptom:** `setup.sh` copies repo `GUIDE.md` → vault `GUIDE.md` once, on initial install.
+After that, no sync. When repo GUIDE gets fixes (alias note, dedup check, git step),
+vault GUIDE stays stale. Agents read vault GUIDE → miss recent fixes → behavior diverges
+from intended workflow.
+
+**Root cause:** No automated sync mechanism between dev-edited (repo) and agent-read (vault)
+copies of GUIDE.md.
+
+**Fix:** Added `_sync_guide()` to `watchdog_scribe.py` — runs at the start of every
+watchdog command, copies repo GUIDE → vault GUIDE if content differs. Repo is canonical.
+Pure helper `sync_file_if_differ()` lives in `io_utils.py` (testable, reusable).
+
+**Tests:** 4 new tests in `tests/test_helpers.py`:
+- `test_sync_file_if_differ_creates_dest_when_missing`
+- `test_sync_file_if_differ_overwrites_when_content_differs`
+- `test_sync_file_if_differ_noop_when_match`
+- `test_sync_file_if_differ_silent_when_source_missing`

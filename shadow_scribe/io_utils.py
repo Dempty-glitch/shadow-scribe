@@ -10,6 +10,23 @@ from pathlib import Path
 from typing import Optional
 
 
+# ─── GUIDE.md autosync (repo → vault, fixes KI-003 drift) ────────────────────
+
+def sync_file_if_differ(source: Path, dest: Path) -> bool:
+    """Copy source → dest if content differs. Returns True if copy happened.
+
+    Pure utility — no prints, no exits. Caller decides UX.
+    """
+    if not source.exists():
+        return False
+    src_content = source.read_text(encoding="utf-8")
+    if dest.exists() and dest.read_text(encoding="utf-8") == src_content:
+        return False
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(src_content, encoding="utf-8")
+    return True
+
+
 # ─── File reading ─────────────────────────────────────────────────────────────
 
 def read_file(path: Path, label: str, required: bool = True) -> str:

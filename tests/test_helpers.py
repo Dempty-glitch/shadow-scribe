@@ -350,3 +350,45 @@ def test_fix_index_row_path_no_match_in_row():
     result = _fix_index_row_path(row, "28_04_26.md", "28_04_26_1.md", "2026", "04")
     assert result == row
 
+
+
+# ─── sync_file_if_differ tests (KI-003 GUIDE auto-sync) ───────────────────────
+
+def test_sync_file_if_differ_creates_dest_when_missing(tmp_path):
+    """Dest doesn't exist → copy source, return True."""
+    from shadow_scribe.io_utils import sync_file_if_differ
+    src = tmp_path / "src.md"
+    dest = tmp_path / "subdir" / "dest.md"
+    src.write_text("hello", encoding="utf-8")
+    assert sync_file_if_differ(src, dest) is True
+    assert dest.read_text(encoding="utf-8") == "hello"
+
+
+def test_sync_file_if_differ_overwrites_when_content_differs(tmp_path):
+    """Dest exists but differs → overwrite with source, return True."""
+    from shadow_scribe.io_utils import sync_file_if_differ
+    src = tmp_path / "src.md"
+    dest = tmp_path / "dest.md"
+    src.write_text("new content", encoding="utf-8")
+    dest.write_text("old content", encoding="utf-8")
+    assert sync_file_if_differ(src, dest) is True
+    assert dest.read_text(encoding="utf-8") == "new content"
+
+
+def test_sync_file_if_differ_noop_when_match(tmp_path):
+    """Dest matches source → no write, return False."""
+    from shadow_scribe.io_utils import sync_file_if_differ
+    src = tmp_path / "src.md"
+    dest = tmp_path / "dest.md"
+    src.write_text("same", encoding="utf-8")
+    dest.write_text("same", encoding="utf-8")
+    assert sync_file_if_differ(src, dest) is False
+
+
+def test_sync_file_if_differ_silent_when_source_missing(tmp_path):
+    """Source missing → no-op, return False, no exception."""
+    from shadow_scribe.io_utils import sync_file_if_differ
+    src = tmp_path / "missing.md"
+    dest = tmp_path / "dest.md"
+    assert sync_file_if_differ(src, dest) is False
+    assert not dest.exists()
