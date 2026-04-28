@@ -33,7 +33,7 @@ if [ ! -f "$INDEX_FILE" ]; then
 
 > Each row = 1 session. Auto-updated by `watchdog scribe`.
 
-| Date | Project | Workspace | TL;DR | Session | Plan | Tags |
+| Date | Project | Workspace | TL;DR | Session | Artifacts | Tags |
 |------|---------|-----------|-------|---------|------|------|
 EOF
     echo "   ✅ 00_INDEX_MATRIX.md created"
