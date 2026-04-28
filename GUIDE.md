@@ -90,6 +90,15 @@ Why: `watchdog audit` auto-picks the most recent `implementation_plan.md` by mti
 
 When user types `@dump`, `summarize`, or similar intent:
 
+**Step 0 — Dedup check (read before write):**
+
+Read the latest session brief for this project from `~/Documents/agent_vault/sessions/{YYYY-MM}/` before writing a new one:
+- **Zero net change** since last dump → skip dump (don't bloat catalog with duplicate rows)
+- **Continuation** (same module, more progress) → dump but reference parent in FOCUS: `(continues sessions/YYYY-MM/DD_MM_YY.md)`
+- **Net new work** → dump as normal
+
+When in doubt, dump (false positive < false negative).
+
 **Step 1:** Run terminal command:
 ```bash
 mkdir -p ~/Documents/agent_vault/raw_logs/{project_name}
