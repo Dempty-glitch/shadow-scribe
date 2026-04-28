@@ -35,7 +35,7 @@ def _filter_list_rows(
                 if row_iso < since:
                     continue
             except (ValueError, IndexError):
-                pass  # unparseable date → include row (lenient)
+                continue  # unparseable date + active since filter → exclude (safe default)
         result.append(row)
     return result
 

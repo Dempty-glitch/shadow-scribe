@@ -79,6 +79,19 @@ def test_filter_since_past_returns_all():
     assert len(result) == 3
 
 
+def test_filter_since_excludes_unparseable_date():
+    """Row with unparseable date (e.g. '1') must be excluded when --since active.
+
+    Regression: previously such rows leaked through via silent except pass.
+    """
+    from shadow_scribe.cmd_query import _parse_index_rows
+    bad_row = "| 1 | z-zero | ai-card | Wallet EOA notes | [Wallet EOA](artifacts/x.md) | — | #note |"
+    matrix = "\n".join([_HEADER, _SEP, bad_row])
+    rows = _parse_index_rows(matrix)
+    result = _filter_list_rows(rows, project=None, since="2026-01-01", tag=None)
+    assert result == []  # unparseable date → excluded when since filter active
+
+
 def test_filter_no_match():
     """--project foo → empty."""
     from shadow_scribe.cmd_query import _parse_index_rows
