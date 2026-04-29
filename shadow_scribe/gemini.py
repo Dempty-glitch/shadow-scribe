@@ -274,6 +274,29 @@ def call_gemini_audit(diff: str, plan: str) -> str:
     return _extract_text(result)
 
 
+def call_gemini_audit_resolve(prompt: str) -> str:
+    """Call Gemini for audit Stage 0 plan resolution."""
+    api_key = get_gemini_api_key()
+    model = get_gemini_model()
+
+    if not api_key:
+        print("❌ GEMINI_API_KEY is not set.")
+        sys.exit(1)
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+
+    safe_prompt = _sanitize_tags(_redact_secrets(prompt))
+    payload = {
+        "system_instruction": {"parts": [{"text": "Return only the requested plan filename or none."}]},
+        "contents": [{"parts": [{"text": safe_prompt}]}],
+        "generationConfig": {"temperature": 0.0},
+    }
+
+    print("🤖 Resolving audit plan...")
+    result = _http_post_with_retry(url, payload)
+    return _extract_text(result)
+
+
 def call_gemini_query(keyword: str, index_content: str) -> str:
     """Stage 2 LLM rerank for `watchdog query` (Phase 6).
 
