@@ -27,6 +27,26 @@ def sync_file_if_differ(source: Path, dest: Path) -> bool:
     return True
 
 
+def sync_dir_if_differ(src_dir: Path, dst_dir: Path, pattern: str = "*.md") -> int:
+    """Mirror files matching pattern from src_dir → dst_dir.
+
+    Uses sync_file_if_differ per file. Returns count of files copied.
+    Additive only — does not delete files in dst not present in src.
+    Silent when src_dir missing (same contract as sync_file_if_differ).
+    """
+    if not src_dir.exists():
+        return 0
+
+    count = 0
+    for src_file in sorted(src_dir.glob(pattern)):
+        if not src_file.is_file():
+            continue
+        dst_file = dst_dir / src_file.name
+        if sync_file_if_differ(src_file, dst_file):
+            count += 1
+    return count
+
+
 # ─── File reading ─────────────────────────────────────────────────────────────
 
 def read_file(path: Path, label: str, required: bool = True) -> str:

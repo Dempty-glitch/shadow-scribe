@@ -10,15 +10,16 @@ from shadow_scribe.config import VAULT_DIR, VERSION, load_env
 
 load_env()  # Explicit — no side-effect on import
 
-from shadow_scribe.cmd_audit import cmd_audit
-from shadow_scribe.cmd_digest import cmd_digest
-from shadow_scribe.cmd_list import cmd_list
-from shadow_scribe.cmd_query import cmd_query
-from shadow_scribe.cmd_scribe import cmd_scribe
-from shadow_scribe.io_utils import sync_file_if_differ
+from shadow_scribe.cmd_audit import cmd_audit  # noqa: E402
+from shadow_scribe.cmd_digest import cmd_digest  # noqa: E402
+from shadow_scribe.cmd_list import cmd_list  # noqa: E402
+from shadow_scribe.cmd_query import cmd_query  # noqa: E402
+from shadow_scribe.cmd_scribe import cmd_scribe  # noqa: E402
+from shadow_scribe.io_utils import sync_dir_if_differ, sync_file_if_differ  # noqa: E402
 
 
 _SYNC_DOC_FILES = ["GUIDE.md", "README.md", "KNOWN_ISSUES.md"]
+_SYNC_ADR_DIR = ("docs/adr", "projects/shadow-scribe/adr")  # TODO: future ADR for multi-project sync.
 
 
 def _sync_docs() -> None:
@@ -31,6 +32,11 @@ def _sync_docs() -> None:
     for fname in _SYNC_DOC_FILES:
         if sync_file_if_differ(repo_dir / fname, VAULT_DIR / fname):
             print(f"📋 {fname} auto-synced: repo → vault")
+    src_adr = repo_dir / _SYNC_ADR_DIR[0]
+    dst_adr = VAULT_DIR / _SYNC_ADR_DIR[1]
+    n = sync_dir_if_differ(src_adr, dst_adr)
+    if n > 0:
+        print(f"📋 adr/ auto-synced: {n} file(s) repo → vault")
 
 
 def _positive_int(value: str) -> int:

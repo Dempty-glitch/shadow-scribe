@@ -1,5 +1,4 @@
 import pytest
-from datetime import datetime
 from shadow_scribe.security import _redact_secrets, _sanitize_tags, _filter_diff
 from shadow_scribe.gemini import parse_output
 from shadow_scribe.io_utils import _parse_session_date
@@ -232,16 +231,16 @@ def test_call_gemini_uses_en_prompt_when_lang_en(monkeypatch):
     import shadow_scribe.gemini as g
     monkeypatch.setenv("SHADOW_SCRIBE_LANG", "en")
     monkeypatch.setattr(g, "get_gemini_api_key", lambda: "fake-key")
-    
+
     captured = {}
     def fake_http(url, payload):
         captured["payload"] = payload
         return {"candidates": [{"content": {"parts": [{"text": '{"session_log":"x","index_row":"y"}'}]}}]}
     monkeypatch.setattr(g, "_http_post_with_retry", fake_http)
-    
+
     g.call_gemini("brief content", "diff content")
     sent_prompt = captured["payload"]["system_instruction"]["parts"][0]["text"]
-    
+
     # Assert EN prompt selected
     assert "Mục tiêu" not in sent_prompt, "VN heading leaked into EN prompt"
     # Assert at least one EN keyword present
@@ -392,3 +391,71 @@ def test_sync_file_if_differ_silent_when_source_missing(tmp_path):
     dest = tmp_path / "dest.md"
     assert sync_file_if_differ(src, dest) is False
     assert not dest.exists()
+
+
+# ─── sync_dir_if_differ tests (KI-006 adr/ auto-sync) ─────────────────────────
+
+def test_sync_dir_creates_dest_when_missing(tmp_path):
+    """Dest dir missing → copy all matching files, return count."""
+    from shadow_scribe.io_utils import sync_dir_if_differ
+    src = tmp_path / "src"
+    dest = tmp_path / "dest"
+    src.mkdir()
+    (src / "001.md").write_text("one", encoding="utf-8")
+    (src / "002.md").write_text("two", encoding="utf-8")
+
+    assert sync_dir_if_differ(src, dest) == 2
+    assert (dest / "001.md").read_text(encoding="utf-8") == "one"
+    assert (dest / "002.md").read_text(encoding="utf-8") == "two"
+
+
+def test_sync_dir_overwrites_when_content_differs(tmp_path):
+    """Only differing files are overwritten and counted."""
+    from shadow_scribe.io_utils import sync_dir_if_differ
+    src = tmp_path / "src"
+    dest = tmp_path / "dest"
+    src.mkdir()
+    dest.mkdir()
+    (src / "001.md").write_text("new", encoding="utf-8")
+    (dest / "001.md").write_text("old", encoding="utf-8")
+
+    assert sync_dir_if_differ(src, dest) == 1
+    assert (dest / "001.md").read_text(encoding="utf-8") == "new"
+
+
+def test_sync_dir_noop_when_all_match(tmp_path):
+    """All files identical → no writes, return 0."""
+    from shadow_scribe.io_utils import sync_dir_if_differ
+    src = tmp_path / "src"
+    dest = tmp_path / "dest"
+    src.mkdir()
+    dest.mkdir()
+    (src / "001.md").write_text("same", encoding="utf-8")
+    (dest / "001.md").write_text("same", encoding="utf-8")
+
+    assert sync_dir_if_differ(src, dest) == 0
+
+
+def test_sync_dir_silent_when_source_missing(tmp_path):
+    """Missing source dir → no-op, return 0, no exception."""
+    from shadow_scribe.io_utils import sync_dir_if_differ
+    src = tmp_path / "missing"
+    dest = tmp_path / "dest"
+
+    assert sync_dir_if_differ(src, dest) == 0
+    assert not dest.exists()
+
+
+def test_sync_dir_additive_only(tmp_path):
+    """Extra dst files not present in src are left untouched."""
+    from shadow_scribe.io_utils import sync_dir_if_differ
+    src = tmp_path / "src"
+    dest = tmp_path / "dest"
+    src.mkdir()
+    dest.mkdir()
+    (src / "001.md").write_text("one", encoding="utf-8")
+    (dest / "extra.md").write_text("vault draft", encoding="utf-8")
+
+    assert sync_dir_if_differ(src, dest) == 1
+    assert (dest / "001.md").read_text(encoding="utf-8") == "one"
+    assert (dest / "extra.md").read_text(encoding="utf-8") == "vault draft"
