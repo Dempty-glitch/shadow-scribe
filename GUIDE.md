@@ -184,6 +184,7 @@ watchdog scribe
 | `watchdog scribe --mock` | Dry-run: print only, no file writes | 🟢 READ |
 | `watchdog audit` | Instant Goal Drift check | 🟢 READ |
 | `watchdog audit --plan /path` | Hard Audit with explicit plan | 🟢 READ |
+| `watchdog doctor` | Read-only vault lint for INDEX/session/ADR drift | 🟢 READ |
 | `watchdog digest` | Aggregate all sessions into report | 🟡 R+W |
 | `watchdog digest --project NAME` | Filter by project | 🟡 R+W |
 | `watchdog query <keyword>` | **(Phase 6)** Search vault — Stage 1 grep, Stage 2 Gemini fallback | 🟢 READ |

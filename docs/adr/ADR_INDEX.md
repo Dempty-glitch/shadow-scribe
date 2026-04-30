@@ -14,4 +14,5 @@
 | 008 | Agent-Native Philosophy — Drop PyPI & Custom Skills | 26/04/2026 | 🟢 ACCEPTED | [→](008_agent_native_philosophy.md) |
 | 009 | Dual-State Crystal Architecture (INTENT + CRYSTAL + INDEX) | 27/04/2026 | 🟢 ACCEPTED | [→](009_dual_state_crystal_architecture.md) |
 | 010 | Single-Source Catalog with Agent-Native Navigation | 28/04/2026 | 🟢 ACCEPTED | [→](010_single_source_catalog.md) |
+| 011 | Watchdog Doctor: deterministic vault lint | 30/04/2026 | ✅ ACCEPTED | [→](011_watchdog_doctor_lint.md) |
 | 013 | Audit Plan Resolution via LLM | 30/04/2026 | ✅ ACCEPTED | [→](013_audit_plan_resolution_via_llm.md) |

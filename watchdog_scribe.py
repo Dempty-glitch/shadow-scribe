@@ -12,6 +12,7 @@ load_env()  # Explicit — no side-effect on import
 
 from shadow_scribe.cmd_audit import cmd_audit  # noqa: E402
 from shadow_scribe.cmd_digest import cmd_digest  # noqa: E402
+from shadow_scribe.cmd_doctor import cmd_doctor  # noqa: E402
 from shadow_scribe.cmd_list import cmd_list  # noqa: E402
 from shadow_scribe.cmd_query import cmd_query  # noqa: E402
 from shadow_scribe.cmd_scribe import cmd_scribe  # noqa: E402
@@ -61,6 +62,9 @@ def main() -> None:
     # audit (mid-session, read-only)
     audit_parser = subparsers.add_parser("audit", help="Mid-session: check goal drift (read-only)")
     audit_parser.add_argument("--plan", default="", help="Path to implementation_plan.md")
+
+    # doctor (vault lint, read-only)
+    subparsers.add_parser("doctor", help="Read-only vault lint (deterministic, no LLM)")
 
     # digest (aggregate multiple sessions, project-filtered)
     digest_parser = subparsers.add_parser("digest", help="Aggregate digest by project")
@@ -118,6 +122,8 @@ def main() -> None:
         cmd_scribe(mock=args.mock)
     elif args.command == "audit":
         cmd_audit(plan_path_arg=args.plan)
+    elif args.command == "doctor":
+        cmd_doctor()
     elif args.command == "digest":
         cmd_digest(project_filter=args.project, last_days=args.last)
     elif args.command == "query":
