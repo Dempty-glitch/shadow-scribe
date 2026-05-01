@@ -99,9 +99,15 @@ Rejected because: sync logic, dual-write on scribe, git noise from regenerated f
 | 1 | `watchdog list --project --since --tag` | Now (ADR-010 ACCEPTED) | ~30 LOC |
 | 2 | Stage 2 top-K: send Stage 1 hits, not full MATRIX | Now (reduces token waste) | ~20 LOC |
 | 3 | `watchdog doctor` / lint-vault | ADR-011 ACCEPTED | ~2h |
-| 4 | Query loopback `--save-as` | ADR-012 ACCEPTED | ~1h |
+| 4 | ~~Query loopback `--save-as`~~ | DROPPED 2026-05-01 | — |
 | 5 | Index-of-index CRYSTAL summary block | > 1000 rows | Low |
 | 6 | Year archive MATRIX_YYYY.md | > 3000 rows | Low |
 | 7 | Hierarchical query (index → slice → candidates → target) | > 5000 rows | Medium |
+
+**Note (2026-05-01):** Row 4 dropped. Karpathy model-collapse framing does
+not apply at tech-project scale (build-then-ship lifecycle, code as ground
+truth, no decision driven by recursive LLM summaries). Shell redirect
+(`watchdog query "foo" > file.md`) covers manual save case. `ADR_INDEX`
+row 012 remains permanent gap.
 
 B3 transactional scribe covers single-file writes — remains valid, unaffected by this ADR.
